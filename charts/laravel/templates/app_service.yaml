@@ -1,18 +1,15 @@
-{{- if .Values.deployment.enabled -}}
-
+{{- if and .Values.app.enabled .Values.app.service.enabled -}}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "laravel.fullname" . }}
+  name: {{ include "laravel.fullname" . }}-app
   labels:
-    {{- include "laravel.labels" . | nindent 4 }}
+    {{- include "laravel.componentLabels" (dict "root" . "component" "app") | nindent 4 }}
 spec:
-  type: {{ .Values.service.type }}
+  type: {{ .Values.app.service.type }}
   ports:
-    - port: {{ .Values.service.port }}
+    - port: {{ default .Values.app.port .Values.app.service.port }}
       targetPort: http
   selector:
-    app.kubernetes.io/name: {{ include "laravel.deployment-app.name" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-
+    {{- include "laravel.componentSelectorLabels" (dict "root" . "component" "app") | nindent 4 }}
 {{- end -}}

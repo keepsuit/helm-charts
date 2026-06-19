@@ -1,15 +1,13 @@
-{{- if gt (int .Values.reverb.replicaCount) 1 }}
+{{- if and .Values.reverb.enabled (gt (int .Values.reverb.replicas) 1) }}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
   name: {{ include "laravel.fullname" . }}-reverb
   labels:
-    {{- include "laravel.labels" . | nindent 4 }}
-    app.kubernetes.io/component: "reverb"
+    {{- include "laravel.componentLabels" (dict "root" . "component" "reverb") | nindent 4 }}
 spec:
   minAvailable: {{ default 1 .Values.reverb.minAvailable }}
   selector:
     matchLabels:
-      {{- include "laravel.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: "reverb"
+      {{- include "laravel.componentSelectorLabels" (dict "root" . "component" "reverb") | nindent 6 }}
 {{- end }}

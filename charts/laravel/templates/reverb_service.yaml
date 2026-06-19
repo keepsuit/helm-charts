@@ -1,17 +1,15 @@
-{{- if .Values.reverb.enabled -}}
+{{- if and .Values.reverb.enabled .Values.reverb.service.enabled -}}
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "laravel.fullname" . }}-reverb
   labels:
-    {{- include "laravel.labels" . | nindent 4 }}
-    app.kubernetes.io/component: "reverb"
+    {{- include "laravel.componentLabels" (dict "root" . "component" "reverb") | nindent 4 }}
 spec:
-    type: {{ .Values.service.type }}
-    ports:
-        - port: {{ .Values.reverb.port }}
-          targetPort: reverb
-    selector:
-      {{- include "laravel.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: "reverb"
+  type: {{ .Values.reverb.service.type }}
+  ports:
+    - port: {{ default .Values.reverb.port .Values.reverb.service.port }}
+      targetPort: reverb
+  selector:
+    {{- include "laravel.componentSelectorLabels" (dict "root" . "component" "reverb") | nindent 4 }}
 {{- end -}}

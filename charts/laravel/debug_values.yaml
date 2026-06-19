@@ -1,44 +1,42 @@
-options:
-  allowArmNodes: true
+global:
+  image:
+    repository: debug/image
+    tag: v1
+  secretVolumes:
+    - name: secret-name
+      mountPath: /storage
+      items:
+        - key: filename-source
+          path: filename-destination
 
-deployment:
-  version: "v1"
-  images:
-    app: "debug/image"
-
+app:
   port: 8080
   healthCheck:
-    path: "/healthcheck"
+    path: /healthcheck
     port: 8080
 
-  octane:
-    enabled: false
-
-horizon:
-  enabled: true
-  autoscaling:
+workers:
+  - name: horizon
+    type: horizon
     enabled: true
-  nodeSelector:
-    kubernetes.io/arch: "arm64"
-
-queueWorkers:
-  enabled: true
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 3
+    nodeSelector:
+      kubernetes.io/arch: arm64
+  - name: default
+    type: queue
+    enabled: true
 
 reverb:
   enabled: true
   debug: true
-  replicaCount: 2
+  replicas: 2
 
 hooks:
   postDeploy:
     enabled: true
-    command:
-      - "php artisan migrate --force -n"
-      - "php artisan db:seed --force -n"
-
-secretVolumes:
-  - name: secret-name
-    mountPath: /storage
-    items:
-      - key: filename-source
-        path: filename-destination
+    commands:
+      - php artisan migrate --force -n
+      - php artisan db:seed --force -n

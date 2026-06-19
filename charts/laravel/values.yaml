@@ -1,29 +1,53 @@
-# Default values for laravel
-deployment:
-  enabled: true
-  replicaCount: 2
-  minAvailable: 1
-  # Additional deployment annotations
-  annotations: {}
-  # Additional pod annotations
+# Default values for the generic Laravel chart.
+
+global:
+  image:
+    repository: ""
+    tag: ""
+    pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  serviceAccountAnnotations: {}
+  env: []
+  envFrom: []
+  secretVolumes: []
   podAnnotations: {}
+  podLabels: {}
+  podSecurityContext: {}
+  securityContext: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+  workerCommand:
+    useWrapper: true
+    binary: docker-laravel-worker
 
-  port: 80
-
-  # Health check settings
+app:
+  enabled: true
+  replicas: 2
+  minAvailable: 1
+  port: 8080
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+  service:
+    enabled: true
+    type: ClusterIP
+    port:
   healthCheck:
-    path: "/ping"
-    port: 8000
-
-  # start laravel with octane
-  octane:
-    enabled: false
-    workers: auto
-
+    enabled: true
+    path: /healthcheck
+    port:
+    initialDelaySeconds: 5
+    periodSeconds: 15
+    timeoutSeconds: 10
+    failureThreshold: 3
   rollingUpdate:
     maxUnavailable: 0
     maxSurge: 1
-
   resources:
     requests:
       cpu: "50m"
@@ -31,110 +55,78 @@ deployment:
     limits:
       cpu: "500m"
       memory: "640Mi"
-
-  pullPolicy: IfNotPresent
-
-  version: ""
-
-  images:
-    app: ""
-
-hooks:
-  postDeploy:
-    enabled: false
-    command: "php artisan migrate --force -n"
-    env: {}
-
-#
-# Main entry point settings
-#
-service:
-  type: ClusterIP
-  port: 80
-
-ingress:
-  enabled: false
-  annotations: {}
-  #    kubernetes.io/ingress.class: nginx
-  #    cert-manager.io/cluster-issuer: letsencrypt
-
-  hosts: []
-  #    - host: example.com
-  #      paths:
-  #        - '/'
-
-redirect:
-  enabled: true
-
-autoscaling:
-  enabled: false
-  minReplicas: 1
-  maxReplicas: 10
-  targetCPUUtilizationPercentage: 60
-  # targetMemoryUtilizationPercentage: 60
-
-#
-# Additional serviceAccount annotations
-#
-serviceAccountAnnotations: {}
-
-#
-# Environment settings
-#
-env:
-
-envFrom: []
-
-#
-# Secrets to mount as volumes
-#
-secretVolumes: []
-# - name: secret-name
-#   items:
-#     - key: filename-source
-#       path: storage/filename-destination
-
-#
-# Enable horizon or standard queue workers
-#
-horizon:
-  enabled: false
-  resources:
-    requests:
-      cpu: "10m"
-      memory: "192Mi"
-    limits:
-      cpu: "500m"
-      memory: "640Mi"
   autoscaling:
     enabled: false
     minReplicas: 1
-    maxReplicas: 5
-    targetCPUUtilizationPercentage: 1000
-    # targetMemoryUtilizationPercentage: 200
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 60
+    targetMemoryUtilizationPercentage:
 
-queueWorkers:
-  enabled: false
-  queues:
-    - name: "default"
-      replica: 1
-  resources:
-    requests:
-      cpu: "5m"
-      memory: "96Mi"
-    limits:
-      cpu: "500m"
-      memory: "640Mi"
+workers: []
+# - name: default
+#   type: queue
+#   enabled: true
+#   replicas: 1
+#   queue: default
+#   env: []
+#   envFrom: []
+#   podAnnotations: {}
+#   podLabels: {}
+#   nodeSelector: {}
+#   tolerations: []
+#   affinity: {}
+#   topologySpreadConstraints: []
+#   resources:
+#     requests:
+#       cpu: "5m"
+#       memory: "96Mi"
+#     limits:
+#       cpu: "500m"
+#       memory: "640Mi"
+#   autoscaling:
+#     enabled: false
+#     minReplicas: 1
+#     maxReplicas: 5
+#     targetCPUUtilizationPercentage: 80
+#     targetMemoryUtilizationPercentage:
+# - name: scheduler
+#   type: scheduler
+#   enabled: false
+#   env: []
+#   envFrom: []
+#   resources: {}
+# - name: combined
+#   type: combined
+#   enabled: false
+#   queue: default
+#   env: []
+#   envFrom: []
+#   resources: {}
 
-#
-# Enable reverb (websockets)
-#
 reverb:
   enabled: false
+  replicas: 1
+  minAvailable: 1
   port: 8080
-  host: ws.example.com
   debug: false
-  replicaCount: 1
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+  service:
+    enabled: true
+    type: ClusterIP
+    port:
+  healthCheck:
+    enabled: true
+    type: tcp
+    port:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 3
   rollingUpdate:
     maxSurge: 1
   resources:
@@ -144,22 +136,31 @@ reverb:
     limits:
       cpu: "100m"
       memory: "384Mi"
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage:
 
-#
-# Enable scheduler
-#
-scheduler:
-  enabled: false
-  cron: false
-  resources:
-    requests:
-      cpu: "5m"
-      memory: "64Mi"
-    limits:
-      cpu: "500m"
-      memory: "640Mi"
+routing:
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    routes: []
+    # - service: app
+    #   host: example.com
+    #   paths:
+    #     - path: /
+    #       pathType: Prefix
+    tls: []
 
-options:
-  disableDefaultEnv: false
-  disableDefaultAppAffinity: false
-  allowArmNodes: false
+hooks:
+  postDeploy:
+    enabled: false
+    commands:
+      - php artisan migrate --force -n
+    env: []
+    envFrom: []
+    resources: {}

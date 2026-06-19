@@ -1,55 +1,48 @@
 {{- if .Values.hooks.postDeploy.enabled -}}
-
-{{- $command := .Values.hooks.postDeploy.command -}}
-{{- if kindOf .Values.hooks.postDeploy.command | eq "slice" -}}
-{{- $command = join " && " .Values.hooks.postDeploy.command -}}
+{{- $commands := default .Values.hooks.postDeploy.command .Values.hooks.postDeploy.commands -}}
+{{- $command := $commands -}}
+{{- if kindOf $commands | eq "slice" -}}
+{{- $command = join " && " $commands -}}
 {{- end -}}
-
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: {{ include "laravel.fullname" . }}-post-deploy
   labels:
-    {{- include "laravel.labels" . | nindent 4 }}
-    app.kubernetes.io/name: {{ template "laravel.deployment-app.name" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/version: "{{ .Values.deployment.version }}"
+    {{- include "laravel.componentLabels" (dict "root" . "component" "post-deploy") | nindent 4 }}
   annotations:
     "helm.sh/hook": "post-install,post-upgrade"
     "helm.sh/hook-delete-policy": before-hook-creation
 spec:
   template:
+    metadata:
+      labels:
+        {{- include "laravel.componentSelectorLabels" (dict "root" . "component" "post-deploy") | nindent 8 }}
     spec:
       restartPolicy: Never
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- if not .Values.options.allowArmNodes }}
-      nodeSelector:
-        kubernetes.io/arch: "amd64"
-      {{- end }}
+      {{- include "laravel.podSpecCommon" (dict "root" . "workload" (dict)) | nindent 6 }}
       containers:
         - name: post-deploy-job
-          image: {{ required "App image required" .Values.deployment.images.app }}:{{ required "App version" .Values.deployment.version }}
-          imagePullPolicy: {{ .Values.deployment.pullPolicy }}
-          args: ['sh', '-c', {{ $command | squote }}]
+          {{- with .Values.global.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: {{ include "laravel.image" . }}
+          imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          args: ["sh", "-c", {{ $command | squote }}]
+          {{- with .Values.hooks.postDeploy.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           env:
-            {{- if not .Values.options.disableDefaultEnv }}
-            - name: LOG_CHANNEL
-              value: "stderr"
-            - name: AUTORUN_LARAVEL_OPTIMIZE
-              value: "false"
-            {{- end }}
-            {{- with .Values.env }}
-            {{- toYaml . | nindent 12 }}
-            {{- end }}
-            {{- with .Values.hooks.postDeploy.env }}
-            {{- toYaml . | nindent 12 }}
-            {{- end }}
-          envFrom:
-            {{- with .Values.envFrom }}
-            {{- toYaml . | nindent 12 }}
-            {{- end }}
-
-{{ end }}
+            {{- include "laravel.env" (dict "root" . "workload" .Values.hooks.postDeploy "role" "post-deploy" "extra" (list (dict "name" "AUTORUN_LARAVEL_OPTIMIZE" "value" "false")) ) | nindent 12 }}
+          {{- include "laravel.envFrom" (dict "root" . "workload" .Values.hooks.postDeploy) | nindent 10 }}
+          {{- with .Values.global.secretVolumes }}
+          volumeMounts:
+            {{- include "laravel.secretVolumeMounts" $ | nindent 12 }}
+          {{- end }}
+      {{- with .Values.global.secretVolumes }}
+      volumes:
+        {{- include "laravel.secretVolumes" $ | nindent 8 }}
+      {{- end }}
+{{- end }}
