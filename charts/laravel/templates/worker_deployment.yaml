@@ -53,7 +53,7 @@ spec:
           volumeMounts:
             {{- include "laravel.secretVolumeMounts" $root | nindent 12 }}
           {{- end }}
-          {{- if eq $worker.type "horizon" }}
+          {{- if and (eq $worker.type "horizon") (not $root.Values.global.workerCommand.useWrapper) }}
           lifecycle:
             preStop:
               exec:
