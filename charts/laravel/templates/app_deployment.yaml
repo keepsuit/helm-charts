@@ -1,4 +1,6 @@
 {{- if .Values.app.enabled -}}
+{{- $appPodAnnotations := mergeOverwrite (deepCopy (default (dict) .Values.global.podAnnotations)) (default (dict) .Values.app.podAnnotations) -}}
+{{- $appPodLabels := mergeOverwrite (deepCopy (default (dict) .Values.global.podLabels)) (default (dict) .Values.app.podLabels) -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -11,7 +13,7 @@ spec:
   {{- end }}
   selector:
     matchLabels:
-      {{- include "laravel.componentSelectorLabels" (dict "root" . "component" "app") | nindent 6 }}
+      {{- include "laravel.appSelectorLabels" . | nindent 6 }}
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -21,7 +23,15 @@ spec:
   revisionHistoryLimit: 3
   template:
     metadata:
-      {{- include "laravel.podMetadata" (dict "root" . "workload" .Values.app "component" "app") | nindent 6 }}
+      labels:
+        {{- include "laravel.appPodLabels" . | nindent 8 }}
+        {{- with $appPodLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with $appPodAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     spec:
       {{- include "laravel.podSpecCommon" (dict "root" . "workload" .Values.app) | nindent 6 }}
       containers:

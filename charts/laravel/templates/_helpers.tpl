@@ -81,6 +81,16 @@ app.kubernetes.io/component: {{ .component | quote }}
 app.kubernetes.io/component: {{ .component | quote }}
 {{- end }}
 
+{{- define "laravel.appSelectorLabels" -}}
+app.kubernetes.io/name: {{ include "laravel.name" . }}-app
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{- define "laravel.appPodLabels" -}}
+{{ include "laravel.appSelectorLabels" . }}
+app.kubernetes.io/component: "app"
+{{- end }}
+
 {{- define "laravel.mergeMap" -}}
 {{- $global := default (dict) .global -}}
 {{- $local := default (dict) .local -}}

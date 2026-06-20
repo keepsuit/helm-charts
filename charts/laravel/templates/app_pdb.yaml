@@ -9,5 +9,5 @@ spec:
   minAvailable: {{ .Values.app.minAvailable }}
   selector:
     matchLabels:
-      {{- include "laravel.componentSelectorLabels" (dict "root" . "component" "app") | nindent 6 }}
+      {{- include "laravel.appSelectorLabels" . | nindent 6 }}
 {{- end }}

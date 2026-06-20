@@ -11,5 +11,5 @@ spec:
     - port: {{ default .Values.app.port .Values.app.service.port }}
       targetPort: http
   selector:
-    {{- include "laravel.componentSelectorLabels" (dict "root" . "component" "app") | nindent 4 }}
+    {{- include "laravel.appSelectorLabels" . | nindent 4 }}
 {{- end -}}
