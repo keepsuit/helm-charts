@@ -155,6 +155,12 @@ routing:
     #     - path: /
     #       pathType: Prefix
     tls: []
+    # - example.com
+    # - www.example.com
+    # Or pass full Kubernetes Ingress TLS objects:
+    # - hosts:
+    #     - example.com
+    #   secretName: custom-tls
 
 hooks:
   postDeploy:

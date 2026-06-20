@@ -16,7 +16,15 @@ spec:
   {{- end }}
   {{- with .Values.routing.ingress.tls }}
   tls:
+    {{- if eq (kindOf (first .)) "string" }}
+    - hosts:
+      {{- range . }}
+        - {{ . | quote }}
+      {{- end }}
+      secretName: {{ include "laravel.fullname" $root }}-tls
+    {{- else }}
     {{- toYaml . | nindent 4 }}
+    {{- end }}
   {{- end }}
   rules:
   {{- range .Values.routing.ingress.routes }}

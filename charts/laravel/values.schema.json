@@ -95,6 +95,26 @@
                 }
               }
             }
+            ,
+            "tls": {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  { "type": "string" },
+                  {
+                    "type": "object",
+                    "required": ["hosts"],
+                    "properties": {
+                      "hosts": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                      },
+                      "secretName": { "type": "string" }
+                    }
+                  }
+                ]
+              }
+            }
           }
         }
       }

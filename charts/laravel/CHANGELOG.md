@@ -164,6 +164,8 @@ routing:
         paths:
           - path: /
             pathType: Prefix
+    tls:
+      - example.com
 ```
 
 Post-deploy hook:
