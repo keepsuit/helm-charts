@@ -68,6 +68,13 @@ workers: []
 #   enabled: true
 #   replicas: 1
 #   queue: default
+#   queueOptions:
+#     sleep:
+#     tries:
+#     timeout:
+#     maxTime:
+#     memory:
+#     backoff:
 #   env: []
 #   envFrom: []
 #   podAnnotations: {}
@@ -99,6 +106,7 @@ workers: []
 #   type: combined
 #   enabled: false
 #   queue: default
+#   queueOptions: {}
 #   env: []
 #   envFrom: []
 #   resources: {}

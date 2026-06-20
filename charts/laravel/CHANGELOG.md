@@ -133,9 +133,13 @@ workers:
     type: combined
     enabled: true
     queue: default,emails
+    queueOptions:
+      sleep: 3
+      tries: 3
+      timeout: 90
 ```
 
-If `global.workerCommand.useWrapper=false`, `queue`, `horizon`, and `scheduler` workers fall back to direct `php artisan` commands. `combined` workers are rejected because they require the image wrapper to supervise scheduler and queue processes.
+The chart passes worker commands as container args and does not override the image entrypoint, so Server Side Up image initialization still runs before the worker command. If `global.workerCommand.useWrapper=false`, `queue`, `horizon`, and `scheduler` workers fall back to direct `php artisan` commands. `combined` workers are rejected because they require the image wrapper to supervise scheduler and queue processes.
 
 Ingress:
 

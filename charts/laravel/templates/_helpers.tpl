@@ -216,18 +216,40 @@ envFrom:
 {{- $root := .root -}}
 {{- $worker := .worker -}}
 {{- $queue := default "default" $worker.queue -}}
+{{- $queueOptions := default (dict) $worker.queueOptions -}}
 {{- if $root.Values.global.workerCommand.useWrapper -}}
-command:
-  - {{ $root.Values.global.workerCommand.binary | quote }}
 args:
+  - {{ $root.Values.global.workerCommand.binary | quote }}
   - {{ $worker.type | quote }}
 {{- if or (eq $worker.type "queue") (eq $worker.type "combined") }}
   - {{ printf "--queue=%s" $queue | quote }}
+{{- range $option := list "sleep" "tries" "timeout" "maxTime" "memory" "backoff" }}
+{{- if hasKey $queueOptions $option }}
+{{- $flag := kebabcase $option }}
+{{- $value := get $queueOptions $option }}
+{{- if ne (toString $value) "<nil>" }}
+  - {{ printf "--%s=%v" $flag $value | quote }}
+{{- end }}
+{{- end }}
+{{- end }}
 {{- end }}
 {{- else if eq $worker.type "combined" -}}
 {{- fail "workers with type=combined require global.workerCommand.useWrapper=true" -}}
 {{- else if eq $worker.type "queue" -}}
-args: ["php", "artisan", "queue:work", "--queue={{ $queue }}"]
+args:
+  - "php"
+  - "artisan"
+  - "queue:work"
+  - {{ printf "--queue=%s" $queue | quote }}
+{{- range $option := list "sleep" "tries" "timeout" "maxTime" "memory" "backoff" }}
+{{- if hasKey $queueOptions $option }}
+{{- $flag := kebabcase $option }}
+{{- $value := get $queueOptions $option }}
+{{- if ne (toString $value) "<nil>" }}
+  - {{ printf "--%s=%v" $flag $value | quote }}
+{{- end }}
+{{- end }}
+{{- end }}
 {{- else if eq $worker.type "horizon" -}}
 args: ["php", "artisan", "horizon"]
 {{- else if eq $worker.type "scheduler" -}}

@@ -52,6 +52,17 @@
           "enabled": { "type": "boolean" },
           "replicas": { "type": "integer", "minimum": 1 },
           "queue": { "type": "string" },
+          "queueOptions": {
+            "type": "object",
+            "properties": {
+              "sleep": { "type": ["integer", "null"], "minimum": 0 },
+              "tries": { "type": ["integer", "null"], "minimum": 0 },
+              "timeout": { "type": ["integer", "null"], "minimum": 0 },
+              "maxTime": { "type": ["integer", "null"], "minimum": 0 },
+              "memory": { "type": ["integer", "null"], "minimum": 0 },
+              "backoff": { "type": ["integer", "null"], "minimum": 0 }
+            }
+          },
           "autoscaling": { "$ref": "#/definitions/autoscaling" }
         }
       }
