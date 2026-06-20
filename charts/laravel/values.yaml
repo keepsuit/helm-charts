@@ -37,6 +37,10 @@ app:
     enabled: true
     type: ClusterIP
     port:
+  octane:
+    enabled: false
+    workers: auto
+    logLevel: info
   healthCheck:
     enabled: true
     path: /healthcheck

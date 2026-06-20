@@ -57,6 +57,9 @@ app:
   enabled: true
   replicas: 2
   port: 8080
+  octane:
+    enabled: false
+    workers: auto
   resources: {}
   autoscaling: {}
   service:

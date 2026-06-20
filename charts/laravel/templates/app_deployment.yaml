@@ -42,6 +42,16 @@ spec:
           {{- end }}
           image: {{ include "laravel.image" . }}
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          {{- if .Values.app.octane.enabled }}
+          args:
+            - "php"
+            - "artisan"
+            - "octane:start"
+            - "--port={{ .Values.app.port }}"
+            - "--host=0.0.0.0"
+            - "--workers={{ .Values.app.octane.workers | default "auto" }}"
+            - "--log-level={{ .Values.app.octane.logLevel | default "info" }}"
+          {{- end }}
           ports:
             - name: http
               containerPort: {{ int .Values.app.port }}
@@ -57,7 +67,32 @@ spec:
           volumeMounts:
             {{- include "laravel.secretVolumeMounts" $ | nindent 12 }}
           {{- end }}
-          {{- if .Values.app.healthCheck.enabled }}
+          {{- if .Values.app.octane.enabled }}
+          readinessProbe:
+            exec:
+              command:
+                - php
+                - artisan
+                - octane:status
+            initialDelaySeconds: {{ .Values.app.healthCheck.initialDelaySeconds }}
+            periodSeconds: {{ .Values.app.healthCheck.periodSeconds }}
+            timeoutSeconds: {{ .Values.app.healthCheck.timeoutSeconds }}
+            failureThreshold: {{ .Values.app.healthCheck.failureThreshold }}
+          livenessProbe:
+            exec:
+              command:
+                - php
+                - artisan
+                - octane:status
+            initialDelaySeconds: {{ .Values.app.healthCheck.initialDelaySeconds }}
+            periodSeconds: {{ .Values.app.healthCheck.periodSeconds }}
+            timeoutSeconds: {{ .Values.app.healthCheck.timeoutSeconds }}
+            failureThreshold: {{ .Values.app.healthCheck.failureThreshold }}
+          lifecycle:
+            preStop:
+              exec:
+                command: ["php", "artisan", "octane:stop"]
+          {{- else if .Values.app.healthCheck.enabled }}
           readinessProbe:
             httpGet:
               path: {{ .Values.app.healthCheck.path | quote }}

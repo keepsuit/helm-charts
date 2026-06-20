@@ -32,6 +32,19 @@
         "replicas": { "type": "integer", "minimum": 0 },
         "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
         "service": { "$ref": "#/definitions/service" },
+        "octane": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "workers": {
+              "anyOf": [
+                { "type": "integer", "minimum": 1 },
+                { "type": "string" }
+              ]
+            },
+            "logLevel": { "type": "string" }
+          }
+        },
         "autoscaling": { "$ref": "#/definitions/autoscaling" }
       }
     },
