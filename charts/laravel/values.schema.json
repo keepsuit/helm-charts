@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "global": {
+      "type": "object",
+      "required": ["image"],
+      "properties": {
+        "image": {
+          "type": "object",
+          "required": ["repository", "tag"],
+          "properties": {
+            "repository": { "type": "string" },
+            "tag": { "type": "string" },
+            "pullPolicy": { "type": "string" }
+          }
+        },
+        "workerCommand": {
+          "type": "object",
+          "properties": {
+            "useWrapper": { "type": "boolean" },
+            "binary": { "type": "string" }
+          }
+        }
+      }
+    },
+    "app": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "replicas": { "type": "integer", "minimum": 0 },
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "service": { "$ref": "#/definitions/service" },
+        "octane": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "workers": {
+              "anyOf": [
+                { "type": "integer", "minimum": 1 },
+                { "type": "string" }
+              ]
+            },
+            "logLevel": { "type": "string" }
+          }
+        },
+        "autoscaling": { "$ref": "#/definitions/autoscaling" }
+      }
+    },
+    "workers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "type"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["queue", "horizon", "scheduler", "combined"]
+          },
+          "enabled": { "type": "boolean" },
+          "replicas": { "type": "integer", "minimum": 1 },
+          "queue": { "type": "string" },
+          "queueOptions": {
+            "type": "object",
+            "properties": {
+              "sleep": { "type": ["integer", "null"], "minimum": 0 },
+              "tries": { "type": ["integer", "null"], "minimum": 0 },
+              "timeout": { "type": ["integer", "null"], "minimum": 0 },
+              "maxTime": { "type": ["integer", "null"], "minimum": 0 },
+              "memory": { "type": ["integer", "null"], "minimum": 0 },
+              "backoff": { "type": ["integer", "null"], "minimum": 0 }
+            }
+          },
+          "autoscaling": { "$ref": "#/definitions/autoscaling" }
+        }
+      }
+    },
+    "reverb": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "replicas": { "type": "integer", "minimum": 1 },
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "service": { "$ref": "#/definitions/service" },
+        "autoscaling": { "$ref": "#/definitions/autoscaling" }
+      }
+    },
+    "routing": {
+      "type": "object",
+      "properties": {
+        "ingress": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "className": { "type": "string" },
+            "routes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["service", "host", "paths"],
+                "properties": {
+                  "service": { "type": "string", "enum": ["app", "reverb"] },
+                  "host": { "type": "string" },
+                  "paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "path": { "type": "string" },
+                        "pathType": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            ,
+            "tls": {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  { "type": "string" },
+                  {
+                    "type": "object",
+                    "required": ["hosts"],
+                    "properties": {
+                      "hosts": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                      },
+                      "secretName": { "type": "string" }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "service": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "type": { "type": "string" },
+        "port": {
+          "anyOf": [
+            { "type": "integer", "minimum": 1, "maximum": 65535 },
+            { "type": "null" }
+          ]
+        }
+      }
+    },
+    "autoscaling": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "minReplicas": { "type": "integer", "minimum": 1 },
+        "maxReplicas": { "type": "integer", "minimum": 1 },
+        "targetCPUUtilizationPercentage": {
+          "anyOf": [{ "type": "integer", "minimum": 1 }, { "type": "null" }]
+        },
+        "targetMemoryUtilizationPercentage": {
+          "anyOf": [{ "type": "integer", "minimum": 1 }, { "type": "null" }]
+        }
+      }
+    }
+  }
+}

@@ -1,51 +1,55 @@
-{{- if and .Values.ingress.enabled (or .Values.deployment.enabled .Values.reverb.enabled) -}}
-{{- $fullName := include "laravel.fullname" . -}}
-{{- $svcPort := .Values.service.port -}}
+{{- if .Values.routing.ingress.enabled -}}
+{{- $root := . -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ $fullName }}
+  name: {{ include "laravel.fullname" . }}
   labels:
     {{- include "laravel.labels" . | nindent 4 }}
+  {{- with .Values.routing.ingress.annotations }}
   annotations:
-    {{- if .Values.redirect.enabled }}
-    nginx.ingress.kubernetes.io/from-to-www-redirect: "true"
-    {{- end }}
-    {{- with .Values.ingress.annotations }}
     {{- toYaml . | nindent 4 }}
-    {{- end }}
+  {{- end }}
 spec:
+  {{- with .Values.routing.ingress.className }}
+  ingressClassName: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.routing.ingress.tls }}
   tls:
+    {{- if eq (kindOf (first .)) "string" }}
     - hosts:
-      {{- range .Values.ingress.tls }}
+      {{- range . }}
         - {{ . | quote }}
       {{- end }}
-      secretName: {{ $fullName }}-tls
+      secretName: {{ include "laravel.fullname" $root }}-tls
+    {{- else }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- end }}
   rules:
-  {{- range .Values.ingress.hosts }}
+  {{- range .Values.routing.ingress.routes }}
+    {{- if and (eq .service "app") (not $root.Values.app.enabled) }}
+    {{- fail "routing.ingress route references app but app.enabled=false" }}
+    {{- end }}
+    {{- if and (eq .service "reverb") (not $root.Values.reverb.enabled) }}
+    {{- fail "routing.ingress route references reverb but reverb.enabled=false" }}
+    {{- end }}
+    {{- if not (has .service (list "app" "reverb")) }}
+    {{- fail (printf "routing.ingress route has unsupported service %q" .service) }}
+    {{- end }}
+    {{- $serviceName := ternary (printf "%s-reverb" (include "laravel.fullname" $root)) (printf "%s-app" (include "laravel.fullname" $root)) (eq .service "reverb") }}
+    {{- $servicePort := ternary (default $root.Values.reverb.port $root.Values.reverb.service.port) (default $root.Values.app.port $root.Values.app.service.port) (eq .service "reverb") }}
     - host: {{ .host | quote }}
       http:
         paths:
         {{- range .paths }}
-          - path: {{ . }}
-            pathType: "ImplementationSpecific"
+          - path: {{ .path | default "/" | quote }}
+            pathType: {{ .pathType | default "Prefix" | quote }}
             backend:
               service:
-                name: {{ $fullName }}
+                name: {{ $serviceName }}
                 port:
-                  number: {{ $svcPort }}
+                  number: {{ $servicePort }}
         {{- end }}
-  {{- end }}
-  {{- if and .Values.reverb.enabled }}
-    - host: {{ required "Reverb host is required" .Values.reverb.host | quote }}
-      http:
-        paths:
-          - path: /
-            pathType: "ImplementationSpecific"
-            backend:
-              service:
-                name: {{ include "laravel.fullname" . }}-reverb
-                port:
-                  number: {{ required "Reverb port is required" .Values.reverb.port }}
   {{- end }}
 {{- end }}

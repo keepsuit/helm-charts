@@ -1,0 +1,40 @@
+{{- $root := . -}}
+{{- range .Values.workers }}
+{{- $worker := . -}}
+{{- $autoscaling := default (dict) $worker.autoscaling -}}
+{{- if and (default true $worker.enabled) $autoscaling.enabled }}
+{{- if not (has $worker.type (list "queue" "horizon")) }}
+{{- fail (printf "worker %q type %s cannot enable autoscaling" $worker.name $worker.type) }}
+{{- end }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "laravel.componentName" (dict "root" $root "name" (printf "worker-%s" $worker.name)) }}
+  labels:
+    {{- include "laravel.componentLabels" (dict "root" $root "component" (printf "worker-%s" $worker.name)) | nindent 4 }}
+    laravel.keepcloud.io/worker-type: {{ $worker.type | quote }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "laravel.componentName" (dict "root" $root "name" (printf "worker-%s" $worker.name)) }}
+  minReplicas: {{ default 1 $autoscaling.minReplicas }}
+  maxReplicas: {{ default 5 $autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ default 80 $autoscaling.targetCPUUtilizationPercentage }}
+  {{- if $autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ $autoscaling.targetMemoryUtilizationPercentage }}
+  {{- end }}
+{{- end }}
+{{- end }}

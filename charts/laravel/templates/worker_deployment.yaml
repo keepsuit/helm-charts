@@ -1,0 +1,67 @@
+{{- $root := . -}}
+{{- range .Values.workers }}
+{{- $worker := . -}}
+{{- $autoscaling := default (dict) $worker.autoscaling -}}
+{{- if default true $worker.enabled }}
+{{- if not (regexMatch "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$" $worker.name) }}
+{{- fail (printf "worker name %q must be a DNS label" $worker.name) }}
+{{- end }}
+{{- if not (has $worker.type (list "queue" "horizon" "scheduler" "combined")) }}
+{{- fail (printf "worker %q has unsupported type %q" $worker.name $worker.type) }}
+{{- end }}
+{{- if and (or (eq $worker.type "scheduler") (eq $worker.type "combined")) $autoscaling.enabled }}
+{{- fail (printf "worker %q type %s cannot enable autoscaling" $worker.name $worker.type) }}
+{{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "laravel.componentName" (dict "root" $root "name" (printf "worker-%s" $worker.name)) }}
+  labels:
+    {{- include "laravel.componentLabels" (dict "root" $root "component" (printf "worker-%s" $worker.name)) | nindent 4 }}
+    laravel.keepcloud.io/worker-type: {{ $worker.type | quote }}
+spec:
+  {{- if not $autoscaling.enabled }}
+  replicas: {{ ternary 1 (default 1 $worker.replicas) (or (eq $worker.type "scheduler") (eq $worker.type "combined")) }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "laravel.componentSelectorLabels" (dict "root" $root "component" (printf "worker-%s" $worker.name)) | nindent 6 }}
+  revisionHistoryLimit: 3
+  template:
+    metadata:
+      {{- include "laravel.podMetadata" (dict "root" $root "workload" $worker "component" (printf "worker-%s" $worker.name)) | nindent 6 }}
+    spec:
+      {{- include "laravel.podSpecCommon" (dict "root" $root "workload" $worker) | nindent 6 }}
+      containers:
+        - name: worker
+          {{- with $root.Values.global.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: {{ include "laravel.image" $root }}
+          imagePullPolicy: {{ $root.Values.global.image.pullPolicy }}
+          {{- include "laravel.workerCommand" (dict "root" $root "worker" $worker) | nindent 10 }}
+          {{- with $worker.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            {{- include "laravel.env" (dict "root" $root "workload" $worker "role" $worker.type) | nindent 12 }}
+          {{- include "laravel.envFrom" (dict "root" $root "workload" $worker) | nindent 10 }}
+          {{- with $root.Values.global.secretVolumes }}
+          volumeMounts:
+            {{- include "laravel.secretVolumeMounts" $root | nindent 12 }}
+          {{- end }}
+          {{- if and (eq $worker.type "horizon") (not $root.Values.global.workerCommand.useWrapper) }}
+          lifecycle:
+            preStop:
+              exec:
+                command: ["php", "artisan", "horizon:terminate"]
+          {{- end }}
+      {{- with $root.Values.global.secretVolumes }}
+      volumes:
+        {{- include "laravel.secretVolumes" $root | nindent 8 }}
+      {{- end }}
+{{- end }}
+{{- end }}

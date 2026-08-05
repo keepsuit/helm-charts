@@ -4,14 +4,14 @@ kind: Deployment
 metadata:
   name: {{ include "laravel.fullname" . }}-reverb
   labels:
-    {{- include "laravel.labels" . | nindent 4 }}
-    app.kubernetes.io/component: "reverb"
+    {{- include "laravel.componentLabels" (dict "root" . "component" "reverb") | nindent 4 }}
 spec:
-  replicas: {{ default 1 .Values.reverb.replicaCount }}
+  {{- if not .Values.reverb.autoscaling.enabled }}
+  replicas: {{ default 1 .Values.reverb.replicas }}
+  {{- end }}
   selector:
     matchLabels:
-      {{- include "laravel.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: "reverb"
+      {{- include "laravel.componentSelectorLabels" (dict "root" . "component" "reverb") | nindent 6 }}
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -21,25 +21,17 @@ spec:
   revisionHistoryLimit: 3
   template:
     metadata:
-      labels:
-        {{- include "laravel.selectorLabels" . | nindent 8 }}
-        app.kubernetes.io/component: "reverb"
+      {{- include "laravel.podMetadata" (dict "root" . "workload" .Values.reverb "component" "reverb") | nindent 6 }}
     spec:
-    {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-    {{- end }}
-      serviceAccountName: {{ include "laravel.serviceAccountName" . }}
-      securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      {{- if not .Values.options.allowArmNodes }}
-      nodeSelector:
-        kubernetes.io/arch: "amd64"
-      {{- end }}
+      {{- include "laravel.podSpecCommon" (dict "root" . "workload" .Values.reverb) | nindent 6 }}
       containers:
         - name: reverb
-          image: {{ required "App image required" .Values.deployment.images.app }}:{{ required "App version" .Values.deployment.version }}
-          imagePullPolicy: {{ .Values.deployment.pullPolicy }}
+          {{- with .Values.global.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: {{ include "laravel.image" . }}
+          imagePullPolicy: {{ .Values.global.image.pullPolicy }}
           args:
             - "php"
             - "artisan"
@@ -47,58 +39,41 @@ spec:
             - "--debug"
             {{- end }}
             - "--host=0.0.0.0"
-            - "--port={{ required "Reverb port is required" .Values.reverb.port }}"
+            - "--port={{ required "reverb.port is required" .Values.reverb.port }}"
             - "reverb:start"
           ports:
             - name: reverb
-              containerPort: {{ int (required "Reverb port is required" .Values.reverb.port) }}
+              containerPort: {{ int (required "reverb.port is required" .Values.reverb.port) }}
               protocol: TCP
+          {{- with .Values.reverb.resources }}
           resources:
-            {{- with .Values.reverb.resources }}
             {{- toYaml . | nindent 12 }}
-            {{- end }}
+          {{- end }}
           env:
-            {{- if not .Values.options.disableDefaultEnv }}
-            - name: LOG_CHANNEL
-              value: "stderr"
-            {{- end }}
-            {{- if gt (int .Values.reverb.replicaCount) 1 }}
-            - name: REVERB_SCALING_ENABLED
-              value: "true"
-            {{- end }}
-            {{- with .Values.env }}
-            {{- toYaml . | nindent 12 }}
-            {{- end }}
-          envFrom:
-            {{- with .Values.envFrom }}
-            {{- toYaml . | nindent 12 }}
-            {{- end }}
+            {{- include "laravel.env" (dict "root" . "workload" .Values.reverb "role" "reverb" "extra" (list (dict "name" "REVERB_SCALING_ENABLED" "value" "true")) ) | nindent 12 }}
+          {{- include "laravel.envFrom" (dict "root" . "workload" .Values.reverb) | nindent 10 }}
+          {{- with .Values.global.secretVolumes }}
           volumeMounts:
-            {{- range .Values.secretVolumes }}
-            {{- $volume := . -}}
-            {{- range .items }}
-            - name: {{ $volume.name }}
-              mountPath: {{ $volume.mountPath | default "/" | trimSuffix "/" }}/{{ .key }}
-              subPath: {{ .key }}
-              readOnly: true
-            {{- end }}
-            {{- end }}
+            {{- include "laravel.secretVolumeMounts" $ | nindent 12 }}
+          {{- end }}
+          {{- if .Values.reverb.healthCheck.enabled }}
           readinessProbe:
             tcpSocket:
-              port: {{ .Values.reverb.port }}
-            initialDelaySeconds: 5
-            periodSeconds: 10
+              port: {{ default .Values.reverb.port .Values.reverb.healthCheck.port }}
+            initialDelaySeconds: {{ .Values.reverb.healthCheck.initialDelaySeconds }}
+            periodSeconds: {{ .Values.reverb.healthCheck.periodSeconds }}
+            timeoutSeconds: {{ .Values.reverb.healthCheck.timeoutSeconds }}
+            failureThreshold: {{ .Values.reverb.healthCheck.failureThreshold }}
           livenessProbe:
             tcpSocket:
-              port: {{ .Values.reverb.port }}
-            initialDelaySeconds: 30
-            periodSeconds: 30
+              port: {{ default .Values.reverb.port .Values.reverb.healthCheck.port }}
+            initialDelaySeconds: {{ .Values.reverb.healthCheck.initialDelaySeconds }}
+            periodSeconds: {{ .Values.reverb.healthCheck.periodSeconds }}
+            timeoutSeconds: {{ .Values.reverb.healthCheck.timeoutSeconds }}
+            failureThreshold: {{ .Values.reverb.healthCheck.failureThreshold }}
+          {{- end }}
+      {{- with .Values.global.secretVolumes }}
       volumes:
-      {{- range .Values.secretVolumes }}
-        - name: {{ .name }}
-          secret:
-            secretName: {{ .name }}
-            items:
-              {{- toYaml .items | nindent 14 }}
+        {{- include "laravel.secretVolumes" $ | nindent 8 }}
       {{- end }}
 {{- end }}

@@ -1,0 +1,32 @@
+{{- if and .Values.reverb.enabled .Values.reverb.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "laravel.fullname" . }}-reverb
+  labels:
+    {{- include "laravel.componentLabels" (dict "root" . "component" "reverb") | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "laravel.fullname" . }}-reverb
+  minReplicas: {{ .Values.reverb.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.reverb.autoscaling.maxReplicas }}
+  metrics:
+  {{- if .Values.reverb.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.reverb.autoscaling.targetCPUUtilizationPercentage }}
+  {{- end }}
+  {{- if .Values.reverb.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.reverb.autoscaling.targetMemoryUtilizationPercentage }}
+  {{- end }}
+{{- end }}
