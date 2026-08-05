@@ -45,9 +45,9 @@ app:
     enabled: true
     path: /healthcheck
     port:
-    initialDelaySeconds: 5
-    periodSeconds: 15
-    timeoutSeconds: 10
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 5
     failureThreshold: 3
   rollingUpdate:
     maxUnavailable: 0
@@ -135,9 +135,9 @@ reverb:
     enabled: true
     type: tcp
     port:
-    initialDelaySeconds: 5
-    periodSeconds: 10
-    timeoutSeconds: 10
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 5
     failureThreshold: 3
   rollingUpdate:
     maxSurge: 1
