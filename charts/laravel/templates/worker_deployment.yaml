@@ -42,7 +42,7 @@ spec:
           image: {{ include "laravel.image" $root }}
           imagePullPolicy: {{ $root.Values.global.image.pullPolicy }}
           {{- include "laravel.workerCommand" (dict "root" $root "worker" $worker) | nindent 10 }}
-          {{- with $worker.resources }}
+          {{- with default (index $root.Values.workerResources $worker.type) $worker.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}

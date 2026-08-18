@@ -133,13 +133,14 @@ workers:
       tries: 3
       timeout: 90
       maxTime: 3600
+    # omit to inherit workerResources.queue (see values.yaml)
     resources:
       requests:
-        cpu: 10m
-        memory: 96Mi
+        cpu: 25m
+        memory: 256Mi
       limits:
         cpu: 500m
-        memory: 640Mi
+        memory: 768Mi
 
   - name: horizon
     type: horizon
