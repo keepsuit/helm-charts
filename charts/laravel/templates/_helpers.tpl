@@ -212,26 +212,41 @@ envFrom:
 {{- end }}
 {{- end }}
 
+{{/*
+Queue worker flags. A key set on the worker wins; otherwise the chart default in
+.Values.queueOptions applies. Setting a key to null on the worker disables it
+even when a default exists.
+*/}}
+{{- define "laravel.queueFlags" -}}
+{{- $defaults := default (dict) .root.Values.queueOptions -}}
+{{- $queueOptions := default (dict) .worker.queueOptions -}}
+{{- range $option := list "sleep" "tries" "timeout" "maxTime" "memory" "backoff" }}
+{{- $has := false }}
+{{- $value := "" }}
+{{- if hasKey $queueOptions $option }}
+{{- $has = true }}
+{{- $value = get $queueOptions $option }}
+{{- else if hasKey $defaults $option }}
+{{- $has = true }}
+{{- $value = get $defaults $option }}
+{{- end }}
+{{- if and $has (ne (toString $value) "<nil>") }}
+  - {{ printf "--%s=%v" (kebabcase $option) $value | quote }}
+{{- end }}
+{{- end }}
+{{- end }}
+
 {{- define "laravel.workerCommand" -}}
 {{- $root := .root -}}
 {{- $worker := .worker -}}
 {{- $queue := default "default" $worker.queue -}}
-{{- $queueOptions := default (dict) $worker.queueOptions -}}
 {{- if $root.Values.global.workerCommand.useWrapper -}}
 args:
   - {{ $root.Values.global.workerCommand.binary | quote }}
   - {{ $worker.type | quote }}
 {{- if or (eq $worker.type "queue") (eq $worker.type "combined") }}
   - {{ printf "--queue=%s" $queue | quote }}
-{{- range $option := list "sleep" "tries" "timeout" "maxTime" "memory" "backoff" }}
-{{- if hasKey $queueOptions $option }}
-{{- $flag := kebabcase $option }}
-{{- $value := get $queueOptions $option }}
-{{- if ne (toString $value) "<nil>" }}
-  - {{ printf "--%s=%v" $flag $value | quote }}
-{{- end }}
-{{- end }}
-{{- end }}
+{{- include "laravel.queueFlags" (dict "root" $root "worker" $worker) }}
 {{- end }}
 {{- else if eq $worker.type "combined" -}}
 {{- fail "workers with type=combined require global.workerCommand.useWrapper=true" -}}
@@ -241,15 +256,7 @@ args:
   - "artisan"
   - "queue:work"
   - {{ printf "--queue=%s" $queue | quote }}
-{{- range $option := list "sleep" "tries" "timeout" "maxTime" "memory" "backoff" }}
-{{- if hasKey $queueOptions $option }}
-{{- $flag := kebabcase $option }}
-{{- $value := get $queueOptions $option }}
-{{- if ne (toString $value) "<nil>" }}
-  - {{ printf "--%s=%v" $flag $value | quote }}
-{{- end }}
-{{- end }}
-{{- end }}
+{{- include "laravel.queueFlags" (dict "root" $root "worker" $worker) }}
 {{- else if eq $worker.type "horizon" -}}
 args: ["php", "artisan", "horizon"]
 {{- else if eq $worker.type "scheduler" -}}

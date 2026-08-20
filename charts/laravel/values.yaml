@@ -66,18 +66,23 @@ app:
     targetCPUUtilizationPercentage: 60
     targetMemoryUtilizationPercentage:
 
+# Default flags for workers of type "queue" and "combined"
+queueOptions:
+  maxTime: 3600
+  memory: 128
+
 # Fallback resources applied to a worker that does not set its own.
 workerResources:
   queue:
     requests:
-      cpu: "10m"
-      memory: "128Mi"
+      cpu: "5m"
+      memory: "96Mi"
     limits:
       cpu: "500m"
       memory: "768Mi"
   horizon:
     requests:
-      cpu: "10m"
+      cpu: "5m"
       memory: "192Mi"
     limits:
       cpu: "500m"
@@ -85,14 +90,14 @@ workerResources:
   scheduler:
     requests:
       cpu: "10m"
-      memory: "96Mi"
+      memory: "32Mi"
     limits:
       cpu: "500m"
       memory: "640Mi"
   combined:
     requests:
-      cpu: "15m"
-      memory: "256Mi"
+      cpu: "10m"
+      memory: "128Mi"
     limits:
       cpu: "500m"
       memory: "768Mi"
