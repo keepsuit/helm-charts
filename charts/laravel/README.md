@@ -150,6 +150,54 @@ workers:
 
 The combined type requires global.workerCommand.useWrapper: true. Commands are passed as arguments to the image entrypoint.
 
+### Queue autoscaling with KEDA
+
+Workers of type queue and horizon can scale on queue depth instead of CPU, down to zero
+replicas. This needs [KEDA](https://keda.sh) installed in the cluster and an image that
+serves `GET /_metrics/queue-size` on port 8081.
+
+Enable the endpoint, then switch the worker to the keda mode:
+
+~~~
+global:
+  metrics:
+    enabled: true
+
+workers:
+  - name: default
+    type: queue
+    queue: default
+    autoscaling:
+      enabled: true
+      mode: keda
+      minReplicas: 0     # default for mode keda
+      maxReplicas: 5
+      targetValue: 10    # queue depth per replica
+      cooldownPeriod:    # seconds idle before scaling to zero, KEDA default is 300
+~~~
+
+global.metrics.enabled adds container port 8081 to the app pods, labels them
+laravel.keepcloud.io/metrics: "true", and renders a dedicated <release>-metrics Service.
+The ScaledObject polls that Service. For queue workers the worker queue is passed through
+as ?queues=..., so the scaler counts exactly the queues the worker consumes; horizon workers
+send no parameter and the endpoint discovers the queues from the horizon config.
+
+Constraints, all enforced at render time:
+
+- mode: keda requires global.metrics.enabled and app.enabled. The endpoint is served by the
+  app pods, so a release without a web tier has nothing to poll.
+- Only queue and horizon workers. Scheduler and combined workers cannot autoscale at all.
+- mode: keda replaces the HorizontalPodAutoscaler, it is never rendered alongside one.
+
+If the metrics endpoint fails, the ScaledObject falls back to 1 replica after 3 consecutive
+failures, so a broken metric leaves a worker running rather than a queue unattended.
+
+KEDA does not document whether this fallback also applies while a worker sits at zero
+replicas. Verify it on the first app you roll this out to: with the worker scaled to zero and
+a job queued, delete the app pods and confirm a worker still starts. If it does not, keep
+minReplicas: 1 on any queue where a stall is not acceptable, queue-depth scaling is still a
+better signal than CPU.
+
 ### FrankenPHP and Octane
 
 To use Laravel Octane:

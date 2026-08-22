@@ -4,6 +4,6 @@ description: A Helm chart for deploying laravel apps
 
 type: application
 
-version: 0.7.6
+version: 0.7.7
 
-appVersion: 0.7.6
+appVersion: 0.7.7

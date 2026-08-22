@@ -21,6 +21,10 @@ global:
   workerCommand:
     useWrapper: true
     binary: docker-laravel-worker
+  # Enable only if the image exposes the queue metrics endpoint on port 8081
+  # (GET /_metrics/queue-size). Required by workers with autoscaling.mode=keda.
+  metrics:
+    enabled: false
 
 app:
   enabled: true
@@ -126,9 +130,12 @@ workers: []
 #   resources: {}  # omit to inherit workerResources[type]
 #   autoscaling:
 #     enabled: false
-#     minReplicas: 1
+#     mode: hpa            # hpa (cpu/memory) or keda (queue depth, scales to zero)
+#     minReplicas: 1       # defaults to 0 when mode=keda
 #     maxReplicas: 5
-#     targetCPUUtilizationPercentage: 80
+#     targetCPUUtilizationPercentage: 80   # hpa only
+#     targetValue: 10      # keda only: queue depth per replica
+#     cooldownPeriod:      # keda only: seconds before scaling to zero (KEDA default 300)
 #     targetMemoryUtilizationPercentage:
 # - name: scheduler
 #   type: scheduler

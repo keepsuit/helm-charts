@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.7.7
+
+### Features
+
+- Added `global.metrics.enabled` (default `false`). When enabled, the app pods are labelled
+  `laravel.keepcloud.io/metrics: "true"`, declare container port `8081`, and a dedicated
+  `<release>-metrics` ClusterIP Service is rendered. Requires an image that serves
+  `GET /_metrics/queue-size` on port 8081.
+- Added `workers[].autoscaling.mode` (`hpa` by default, or `keda`). With `keda`, a
+  `ScaledObject` is rendered instead of an `HorizontalPodAutoscaler`, scaling on queue depth
+  read from the metrics endpoint and scaling to zero by default.
+- Added `workers[].autoscaling.targetValue` (queue depth per replica, default `10`) and
+  `workers[].autoscaling.cooldownPeriod`, both used only by `mode: keda`.
+
 ## 0.7.0
 
 ### Breaking changes

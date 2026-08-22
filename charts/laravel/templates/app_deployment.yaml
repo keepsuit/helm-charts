@@ -25,6 +25,9 @@ spec:
     metadata:
       labels:
         {{- include "laravel.appPodLabels" . | nindent 8 }}
+        {{- if .Values.global.metrics.enabled }}
+        laravel.keepcloud.io/metrics: "true"
+        {{- end }}
         {{- with $appPodLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -56,6 +59,11 @@ spec:
             - name: http
               containerPort: {{ int .Values.app.port }}
               protocol: TCP
+            {{- if .Values.global.metrics.enabled }}
+            - name: metrics
+              containerPort: 8081
+              protocol: TCP
+            {{- end }}
           {{- with .Values.app.resources }}
           resources:
             {{- toYaml . | nindent 12 }}

@@ -22,6 +22,12 @@
             "useWrapper": { "type": "boolean" },
             "binary": { "type": "string" }
           }
+        },
+        "metrics": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" }
+          }
         }
       }
     },
@@ -76,7 +82,7 @@
               "backoff": { "type": ["integer", "null"], "minimum": 0 }
             }
           },
-          "autoscaling": { "$ref": "#/definitions/autoscaling" }
+          "autoscaling": { "$ref": "#/definitions/workerAutoscaling" }
         }
       }
     },
@@ -169,6 +175,25 @@
         },
         "targetMemoryUtilizationPercentage": {
           "anyOf": [{ "type": "integer", "minimum": 1 }, { "type": "null" }]
+        }
+      }
+    },
+    "workerAutoscaling": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "mode": { "type": "string", "enum": ["hpa", "keda"] },
+        "minReplicas": { "type": "integer", "minimum": 0 },
+        "maxReplicas": { "type": "integer", "minimum": 1 },
+        "targetCPUUtilizationPercentage": {
+          "anyOf": [{ "type": "integer", "minimum": 1 }, { "type": "null" }]
+        },
+        "targetMemoryUtilizationPercentage": {
+          "anyOf": [{ "type": "integer", "minimum": 1 }, { "type": "null" }]
+        },
+        "targetValue": { "type": "integer", "minimum": 1 },
+        "cooldownPeriod": {
+          "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }]
         }
       }
     }

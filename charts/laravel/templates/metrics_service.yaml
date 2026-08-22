@@ -1,0 +1,18 @@
+{{- if and .Values.app.enabled .Values.global.metrics.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "laravel.fullname" . }}-metrics
+  labels:
+    {{- include "laravel.componentLabels" (dict "root" . "component" "metrics") | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8081
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    laravel.keepcloud.io/metrics: "true"
+{{- end -}}
