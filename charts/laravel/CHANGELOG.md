@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.8
+
+### Fixes
+
+- `workers[].enabled: false` no longer renders the worker. Helm's `default` treats `false` as
+  empty, so the flag was ignored and disabled workers were deployed anyway. Affects the
+  Deployment, the HorizontalPodAutoscaler and the KEDA ScaledObject.
+
 ## 0.7.7
 
 ### Features

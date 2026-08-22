@@ -2,7 +2,7 @@
 {{- range .Values.workers }}
 {{- $worker := . -}}
 {{- $autoscaling := default (dict) $worker.autoscaling -}}
-{{- if default true $worker.enabled }}
+{{- if dig "enabled" true $worker }}
 {{- if not (regexMatch "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$" $worker.name) }}
 {{- fail (printf "worker name %q must be a DNS label" $worker.name) }}
 {{- end }}

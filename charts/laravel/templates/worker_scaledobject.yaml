@@ -2,7 +2,7 @@
 {{- range .Values.workers }}
 {{- $worker := . -}}
 {{- $autoscaling := default (dict) $worker.autoscaling -}}
-{{- if and (default true $worker.enabled) $autoscaling.enabled (eq (default "hpa" $autoscaling.mode) "keda") }}
+{{- if and (dig "enabled" true $worker) $autoscaling.enabled (eq (default "hpa" $autoscaling.mode) "keda") }}
 {{- if not (has $worker.type (list "queue" "horizon")) }}
 {{- fail (printf "worker %q type %s cannot use autoscaling mode keda" $worker.name $worker.type) }}
 {{- end }}
