@@ -22,6 +22,71 @@
 - Added `workers[].autoscaling.targetValue` (queue depth per replica, default `10`) and
   `workers[].autoscaling.cooldownPeriod`, both used only by `mode: keda`.
 
+## 0.7.6
+
+### Features
+
+- Added `queueOptions` at the top level: chart-wide default flags for `queue` and `combined`
+  workers, defaulting to `maxTime: 3600` and `memory: 128`. A worker's own `queueOptions` still
+  wins, and setting a key to `null` on the worker drops the flag even when a default exists.
+
+## 0.7.5
+
+### Features
+
+- Added `workerResources`, per-type fallback requests and limits (`queue`, `horizon`,
+  `scheduler`, `combined`) applied to any worker that does not set `resources` itself.
+  Previously a worker without `resources` got none at all.
+
+### Changes
+
+- Lowered the default `app` CPU request from `50m` to `15m` and raised the CPU limit from
+  `500m` to `1000m`.
+
+## 0.7.4
+
+### Changes
+
+- Relaxed the default health check timings for `app` and `reverb`: `initialDelaySeconds` 5 to
+  30, `periodSeconds` 15/10 to 30, `timeoutSeconds` 10 to 5. Slow-booting apps were being
+  restarted before they became ready.
+
+## 0.7.3
+
+### Features
+
+- Added Laravel Octane support under `app.octane` (`enabled`, `workers`, `logLevel`), with a
+  dedicated readiness probe.
+- Added `workers[].queueOptions` (`sleep`, `tries`, `timeout`, `maxTime`, `memory`, `backoff`),
+  rendered as `php artisan queue:work` flags.
+
+## 0.7.2
+
+### Fixes
+
+- Restored the `app` selector to `app.kubernetes.io/name: <name>-app`, the label used up to
+  0.6.25. 0.7.0 had switched it to `app.kubernetes.io/name: <name>` plus
+  `app.kubernetes.io/component: app` without listing it as a breaking change, which breaks
+  `helm upgrade` on an existing release because `spec.selector` is immutable.
+
+  Upgrading from 0.6.x straight to 0.7.2 or later needs nothing: the selector is the same one
+  0.6.x used. Only releases sitting on 0.7.0 or 0.7.1 have to swap the Deployment out:
+
+  ```bash
+  kubectl -n <ns> delete deployment <release>-app --cascade=orphan
+  helm upgrade ...
+  # the orphaned pods keep the 0.7.0 labels and are never adopted, drop them once
+  # the new ones are ready
+  kubectl -n <ns> delete pod -l app.kubernetes.io/name=laravel,app.kubernetes.io/component=app
+  ```
+
+## 0.7.1
+
+### Features
+
+- Added a TLS shorthand to `routing.ingress.routes[].tls`: a plain list of hostnames alongside
+  the full Kubernetes Ingress TLS objects.
+
 ## 0.7.0
 
 ### Breaking changes
