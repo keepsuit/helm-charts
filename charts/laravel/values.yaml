@@ -58,8 +58,8 @@ app:
     maxSurge: 1
   resources:
     requests:
-      cpu: "15m"
-      memory: "128Mi"
+      cpu: "10m"
+      memory: "96Mi"
     limits:
       cpu: "1000m"
       memory: "640Mi"
@@ -79,31 +79,31 @@ queueOptions:
 workerResources:
   queue:
     requests:
-      cpu: "5m"
-      memory: "96Mi"
+      cpu: "10m"
+      memory: "128Mi"
     limits:
-      cpu: "500m"
+      cpu: "1000m"
       memory: "768Mi"
   horizon:
     requests:
-      cpu: "5m"
-      memory: "192Mi"
+      cpu: "10m"
+      memory: "256Mi"
     limits:
-      cpu: "500m"
+      cpu: "1000m"
       memory: "768Mi"
   scheduler:
     requests:
       cpu: "10m"
-      memory: "32Mi"
+      memory: "48Mi"
     limits:
-      cpu: "500m"
+      cpu: "1000m"
       memory: "640Mi"
   combined:
     requests:
-      cpu: "10m"
-      memory: "128Mi"
+      cpu: "15m"
+      memory: "192Mi"
     limits:
-      cpu: "500m"
+      cpu: "1000m"
       memory: "768Mi"
 
 workers: []
@@ -180,7 +180,7 @@ reverb:
     maxSurge: 1
   resources:
     requests:
-      cpu: "20m"
+      cpu: "15m"
       memory: "128Mi"
     limits:
       cpu: "200m"
