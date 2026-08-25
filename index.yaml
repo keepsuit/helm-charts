@@ -2,6 +2,16 @@ apiVersion: v1
 entries:
   laravel:
   - apiVersion: v2
+    appVersion: 0.7.9
+    created: "2026-08-25T09:21:33.628271624Z"
+    description: A Helm chart for deploying laravel apps
+    digest: 1323e72b48b21e48653bc750b62e85cb56d1c98d7b428a2748e54fcc233f8dd5
+    name: laravel
+    type: application
+    urls:
+    - https://github.com/keepsuit/helm-charts/releases/download/laravel-0.7.9/laravel-0.7.9.tgz
+    version: 0.7.9
+  - apiVersion: v2
     appVersion: 0.7.8
     created: "2026-08-22T12:41:20.433864078Z"
     description: A Helm chart for deploying laravel apps
@@ -51,4 +61,4 @@ entries:
     urls:
     - https://github.com/twentyweb/helm-charts/releases/download/laravel-0.7.4/laravel-0.7.4.tgz
     version: 0.7.4
-generated: "2026-08-22T12:41:20.433879753Z"
+generated: "2026-08-25T09:21:33.628296571Z"
