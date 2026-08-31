@@ -154,7 +154,7 @@ topologySpreadConstraints:
 
 {{- define "laravel.defaultEnv" -}}
 - name: APP_VERSION
-  value: {{ .root.Values.global.image.tag | quote }}
+  value: {{ .root.Values.global.appVersion | default .root.Values.global.image.tag | quote }}
 - name: CONTAINER_ROLE
   value: {{ .role | quote }}
 {{- end }}

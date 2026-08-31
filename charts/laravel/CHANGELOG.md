@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.10
+
+### Features
+
+- Added `global.appVersion` (default empty). Sets the `APP_VERSION` env var on all workloads,
+  falling back to `global.image.tag` as before. Useful when the image tag is a commit sha but
+  the app should report a release version.
+
 ## 0.7.8
 
 ### Fixes

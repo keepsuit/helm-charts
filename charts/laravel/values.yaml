@@ -5,6 +5,8 @@ global:
     repository: ""
     tag: ""
     pullPolicy: IfNotPresent
+  # Value of the APP_VERSION env var. Defaults to global.image.tag.
+  appVersion: ""
   imagePullSecrets: []
   serviceAccountAnnotations: {}
   env: []

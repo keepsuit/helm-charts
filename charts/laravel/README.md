@@ -98,7 +98,14 @@ app:
       value: stderr
 ~~~
 
-Global environment variables are applied to the chart workloads. Chart-owned variables such as APP_VERSION and CONTAINER_ROLE cannot be overridden.
+Global environment variables are applied to the chart workloads. Chart-owned variables such as `APP_VERSION` and `CONTAINER_ROLE` cannot be overridden through `env`.
+
+`APP_VERSION` defaults to `global.image.tag`; set `global.appVersion` when the released app version differs from the image tag (e.g. tags are commit shas):
+
+~~~
+global:
+  appVersion: "v1.4.2"
+~~~
 
 To mount files from a Secret:
 

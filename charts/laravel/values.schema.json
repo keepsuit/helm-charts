@@ -16,6 +16,7 @@
             "pullPolicy": { "type": "string" }
           }
         },
+        "appVersion": { "type": "string" },
         "workerCommand": {
           "type": "object",
           "properties": {
