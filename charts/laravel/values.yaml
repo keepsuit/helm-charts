@@ -38,7 +38,16 @@ app:
   nodeSelector: {}
   tolerations: []
   affinity: {}
-  topologySpreadConstraints: []
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: ScheduleAnyway
+      nodeTaintsPolicy: Honor
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/component: app
+      matchLabelKeys:
+        - app.kubernetes.io/instance
   service:
     enabled: true
     type: ClusterIP

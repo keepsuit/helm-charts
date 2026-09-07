@@ -76,14 +76,23 @@ spec:
             {{- include "laravel.secretVolumeMounts" $ | nindent 12 }}
           {{- end }}
           {{- if .Values.app.octane.enabled }}
+          startupProbe:
+            exec:
+              command:
+                - php
+                - artisan
+                - octane:status
+            periodSeconds: 2
+            timeoutSeconds: 5
+            failureThreshold: 60
           readinessProbe:
             exec:
               command:
                 - php
                 - artisan
                 - octane:status
-            initialDelaySeconds: {{ .Values.app.healthCheck.initialDelaySeconds }}
-            periodSeconds: {{ .Values.app.healthCheck.periodSeconds }}
+            initialDelaySeconds: 0
+            periodSeconds: 5
             timeoutSeconds: {{ .Values.app.healthCheck.timeoutSeconds }}
             failureThreshold: {{ .Values.app.healthCheck.failureThreshold }}
           livenessProbe:
@@ -101,12 +110,19 @@ spec:
               exec:
                 command: ["php", "artisan", "octane:stop"]
           {{- else if .Values.app.healthCheck.enabled }}
+          startupProbe:
+            httpGet:
+              path: {{ .Values.app.healthCheck.path | quote }}
+              port: {{ default .Values.app.port .Values.app.healthCheck.port }}
+            periodSeconds: 2
+            timeoutSeconds: 5
+            failureThreshold: 60
           readinessProbe:
             httpGet:
               path: {{ .Values.app.healthCheck.path | quote }}
               port: {{ default .Values.app.port .Values.app.healthCheck.port }}
-            initialDelaySeconds: {{ .Values.app.healthCheck.initialDelaySeconds }}
-            periodSeconds: {{ .Values.app.healthCheck.periodSeconds }}
+            initialDelaySeconds: 0
+            periodSeconds: 5
             timeoutSeconds: {{ .Values.app.healthCheck.timeoutSeconds }}
             failureThreshold: {{ .Values.app.healthCheck.failureThreshold }}
           livenessProbe:

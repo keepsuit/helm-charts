@@ -77,7 +77,9 @@ app:
     targetCPUUtilizationPercentage: 60
 ~~~
 
-The chart uses the same HTTP health check for the application's readiness and liveness probes. The endpoint should therefore be lightweight and reliable.
+The chart uses the configured health check endpoint for the application's startup, readiness, and liveness probes. Startup allows up to two minutes for a cold boot; readiness starts immediately and checks every five seconds, while liveness keeps the configured timings. The endpoint should therefore be lightweight and reliable.
+
+Application pods use a default topology spread constraint across `kubernetes.io/hostname` with `maxSkew: 1`, `whenUnsatisfiable: ScheduleAnyway`, and `nodeTaintsPolicy: Honor`. Override `app.topologySpreadConstraints` when needed; worker deployments do not receive this default.
 
 ### Environment variables and Secrets
 

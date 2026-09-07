@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.11
+
+### Changes
+
+- Added a two-minute startup probe and faster application readiness checks.
+- Added a default application topology spread constraint across nodes.
+
 ## 0.7.10
 
 ### Features
