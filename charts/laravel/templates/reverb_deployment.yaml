@@ -50,7 +50,7 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           env:
-            {{- include "laravel.env" (dict "root" . "workload" .Values.reverb "role" "reverb" "extra" (list (dict "name" "REVERB_SCALING_ENABLED" "value" "true")) ) | nindent 12 }}
+            {{- include "laravel.env" (dict "root" . "workload" .Values.reverb "role" "reverb" "extra" (list (dict "name" "REVERB_SCALING_ENABLED" "value" (ternary "true" "false" (gt (int (default 1 .Values.reverb.replicas)) 1)))) ) | nindent 12 }}
           {{- include "laravel.envFrom" (dict "root" . "workload" .Values.reverb) | nindent 10 }}
           {{- with .Values.global.secretVolumes }}
           volumeMounts:
