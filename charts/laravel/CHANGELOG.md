@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.13
+
+### Features
+
+- Added an optional `hooks.preDeploy` Job that runs before install and upgrade and blocks the
+  Helm operation when its commands fail.
+
 ## 0.7.11
 
 ### Changes

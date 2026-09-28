@@ -223,6 +223,12 @@ routing:
     #   secretName: custom-tls
 
 hooks:
+  preDeploy:
+    enabled: false
+    commands: []
+    env: []
+    envFrom: []
+    resources: {}
   postDeploy:
     enabled: false
     commands:

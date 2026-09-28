@@ -1,0 +1,49 @@
+{{- if .Values.hooks.preDeploy.enabled -}}
+{{- $commands := default .Values.hooks.preDeploy.command .Values.hooks.preDeploy.commands -}}
+{{- $command := $commands -}}
+{{- if kindOf $commands | eq "slice" -}}
+{{- $command = join " && " $commands -}}
+{{- end -}}
+{{- $command = required "hooks.preDeploy.commands must contain at least one command when hooks.preDeploy.enabled is true" $command -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "laravel.fullname" . }}-pre-deploy
+  labels:
+    {{- include "laravel.componentLabels" (dict "root" . "component" "pre-deploy") | nindent 4 }}
+  annotations:
+    "helm.sh/hook": "pre-install,pre-upgrade"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  template:
+    metadata:
+      labels:
+        {{- include "laravel.componentSelectorLabels" (dict "root" . "component" "pre-deploy") | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      {{- include "laravel.podSpecCommon" (dict "root" . "workload" (dict)) | nindent 6 }}
+      containers:
+        - name: pre-deploy-job
+          {{- with .Values.global.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: {{ include "laravel.image" . }}
+          imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          args: ["sh", "-c", {{ $command | squote }}]
+          {{- with .Values.hooks.preDeploy.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            {{- include "laravel.env" (dict "root" . "workload" .Values.hooks.preDeploy "role" "pre-deploy" "extra" (list (dict "name" "AUTORUN_LARAVEL_OPTIMIZE" "value" "false")) ) | nindent 12 }}
+          {{- include "laravel.envFrom" (dict "root" . "workload" .Values.hooks.preDeploy) | nindent 10 }}
+          {{- with .Values.global.secretVolumes }}
+          volumeMounts:
+            {{- include "laravel.secretVolumeMounts" $ | nindent 12 }}
+          {{- end }}
+      {{- with .Values.global.secretVolumes }}
+      volumes:
+        {{- include "laravel.secretVolumes" $ | nindent 8 }}
+      {{- end }}
+{{- end }}

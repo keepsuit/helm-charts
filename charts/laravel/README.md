@@ -259,6 +259,23 @@ routing:
 
 Routes can target the app or reverb Service.
 
+### Pre-deploy hooks
+
+To run checks before Helm installs or upgrades the application, enable the pre-deploy hook.
+Helm waits for the Job to complete; a failed command fails the Helm operation:
+
+~~~yaml
+hooks:
+  preDeploy:
+    enabled: true
+    commands:
+      - php artisan about
+      - php artisan migrate:status
+~~~
+
+The hook uses the configured application image, environment, `envFrom`, and global secret
+volumes. Commands run in order and stop at the first failure.
+
 ### Post-deploy hooks
 
 To run commands after deployment:
