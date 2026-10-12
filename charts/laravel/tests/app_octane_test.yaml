@@ -1,0 +1,44 @@
+---
+suite: Octane arguments and deployment deadline
+templates:
+- app_deployment.yaml
+set:
+  global.image.repository: example/app
+  global.image.tag: test
+tests:
+- it: renders a configured progress deadline
+  set:
+    app.progressDeadlineSeconds: 900
+  asserts:
+  - equal:
+      path: spec.progressDeadlineSeconds
+      value: 900
+- it: appends extra arguments without splitting or shell expansion
+  set:
+    app.octane.enabled: true
+    app.octane.extraArgs: &1
+    - "--server=roadrunner"
+    - "--rr-config=/app/custom config.yaml"
+    - --name="quoted"
+    - "$(literal)"
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].args
+      value:
+      - php
+      - artisan
+      - octane:start
+      - "--port=8080"
+      - "--host=0.0.0.0"
+      - "--workers=auto"
+      - "--log-level=info"
+      - "--server=roadrunner"
+      - "--rr-config=/app/custom config.yaml"
+      - --name="quoted"
+      - "$(literal)"
+- it: does not override the image command when Octane is disabled
+  set:
+    app.octane.extraArgs: *1
+  asserts:
+  - notExists:
+      path: spec.template.spec.containers[0].args

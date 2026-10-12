@@ -79,6 +79,43 @@ app:
 
 The chart uses the configured health check endpoint for the application's startup, readiness, and liveness probes. Startup allows up to two minutes for a cold boot; readiness starts immediately and checks every five seconds, while liveness keeps the configured timings. The endpoint should therefore be lightweight and reliable.
 
+Customize `app.startupProbe`, `app.readinessProbe`, and `app.livenessProbe` independently.
+Omitted or `null` values retain the generated probe; `false` disables that probe. An object
+overrides its fields. Timing-only overrides retain the generated check, while an `httpGet`,
+`exec`, `tcpSocket`, or `grpc` handler replaces it entirely. Specify at most one handler.
+`app.healthCheck.enabled: false` disables all three probes, including in Octane mode.
+Octane's generated probes use `php artisan octane:status` instead of an HTTP endpoint.
+
+For a slow startup script, increase the overall startup budget rather than only the timeout
+of an individual check:
+
+~~~yaml
+app:
+  startupProbe:
+    periodSeconds: 5
+    failureThreshold: 120 # approximately ten minutes to complete initialization
+    timeoutSeconds: 5
+  progressDeadlineSeconds: 900
+~~~
+
+Readiness and liveness probes wait until startup succeeds. `progressDeadlineSeconds` controls
+when Kubernetes reports a stalled rollout; omitted or `null` uses its 600-second default.
+Also increase the deployment tool's timeout, for example `helm upgrade --install ... --wait
+--timeout 15m`, to cover initialization and rollout time.
+
+To check application readiness over HTTP even when Octane is enabled:
+
+~~~yaml
+app:
+  readinessProbe:
+    httpGet:
+      path: /up
+      port: http
+~~~
+
+Use a lightweight application route for readiness. Server Side Up's `/healthcheck` responds
+directly from Caddy and does not verify that a Laravel worker can serve requests.
+
 Application pods use a default topology spread constraint across `kubernetes.io/hostname` with `maxSkew: 1`, `whenUnsatisfiable: ScheduleAnyway`, and `nodeTaintsPolicy: Honor`. Override `app.topologySpreadConstraints` when needed; worker deployments do not receive this default.
 
 ### Environment variables and Secrets
@@ -217,7 +254,19 @@ app:
     enabled: true
     workers: auto
     logLevel: info
+    extraArgs:
+      - --max-requests=500
 ~~~
+
+`app.octane.extraArgs` appends each string as a separate argument without shell expansion.
+It supports server-specific options without duplicating Octane's options in the chart.
+For example, use `--rr-config=/app/.rr.yaml` for RoadRunner or `--task-workers=2` for Swoole.
+Avoid duplicating the chart-generated port, host, workers, and log-level options. Configure
+`OCTANE_SERVER` in Laravel so startup, status probes, and the stop hook use the same server.
+The image must include the selected server and any referenced configuration files.
+
+With Server Side Up's FrankenPHP image, use `--caddyfile=/etc/frankenphp/Caddyfile` unless
+your image already supplies it. Keep `CADDY_HTTP_PORT` aligned with `app.port`.
 
 Always configure resources and health checks according to the number of threads/workers and the container memory limit.
 

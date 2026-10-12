@@ -1,0 +1,148 @@
+---
+suite: Application, Reverb and metrics services
+templates:
+- app_service.yaml
+- reverb_service.yaml
+- metrics_service.yaml
+- app_deployment.yaml
+release:
+  name: verify
+  namespace: test
+set:
+  global.image.repository: example/app
+  global.image.tag: test
+tests:
+- it: routes app service to its workload
+  set:
+    app.enabled: true
+  asserts:
+  - equal:
+      path: spec.selector
+      value:
+        app.kubernetes.io/name: laravel-app
+        app.kubernetes.io/instance: verify
+    template: app_service.yaml
+  - equal:
+      path: spec.ports
+      value:
+      - port: 8080
+        targetPort: http
+    template: app_service.yaml
+- it: supports app custom service port and type
+  set:
+    app.enabled: true
+    app.service.port: 80
+    app.service.type: NodePort
+  asserts:
+  - equal:
+      path: spec.ports[0].port
+      value: 80
+    template: app_service.yaml
+  - equal:
+      path: spec.type
+      value: NodePort
+    template: app_service.yaml
+- it: omits disabled app service
+  set:
+    app.enabled: true
+    app.service.enabled: false
+  asserts:
+  - hasDocuments:
+      count: 0
+    template: app_service.yaml
+- it: omits app service when workload is disabled
+  set:
+    app.enabled: false
+  asserts:
+  - hasDocuments:
+      count: 0
+    template: app_service.yaml
+- it: routes reverb service to its workload
+  set:
+    reverb.enabled: true
+  asserts:
+  - equal:
+      path: spec.selector
+      value:
+        app.kubernetes.io/name: laravel
+        app.kubernetes.io/instance: verify
+        app.kubernetes.io/component: reverb
+    template: reverb_service.yaml
+  - equal:
+      path: spec.ports
+      value:
+      - port: 8080
+        targetPort: reverb
+    template: reverb_service.yaml
+- it: supports reverb custom service port and type
+  set:
+    reverb.enabled: true
+    reverb.service.port: 80
+    reverb.service.type: NodePort
+  asserts:
+  - equal:
+      path: spec.ports[0].port
+      value: 80
+    template: reverb_service.yaml
+  - equal:
+      path: spec.type
+      value: NodePort
+    template: reverb_service.yaml
+- it: omits disabled reverb service
+  set:
+    reverb.enabled: true
+    reverb.service.enabled: false
+  asserts:
+  - hasDocuments:
+      count: 0
+    template: reverb_service.yaml
+- it: omits reverb service when workload is disabled
+  set:
+    reverb.enabled: false
+  asserts:
+  - hasDocuments:
+      count: 0
+    template: reverb_service.yaml
+- it: omits metrics service by default
+  set: {}
+  asserts:
+  - hasDocuments:
+      count: 0
+    template: metrics_service.yaml
+- it: exposes metrics only on selected application pods
+  set:
+    global.metrics.enabled: true
+  asserts:
+  - equal:
+      path: spec.ports
+      value:
+      - port: 8081
+        targetPort: metrics
+        protocol: TCP
+        name: metrics
+    template: metrics_service.yaml
+  - equal:
+      path: spec.selector
+      value:
+        app.kubernetes.io/instance: verify
+        laravel.keepcloud.io/metrics: 'true'
+    template: metrics_service.yaml
+  - equal:
+      path: spec.template.metadata.labels["laravel.keepcloud.io/metrics"]
+      value: 'true'
+    template: app_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].ports[1].name
+      value: metrics
+    template: app_deployment.yaml
+- it: does not expose metrics without the app
+  set:
+    global.metrics.enabled: true
+    app.enabled: false
+  asserts:
+  - hasDocuments:
+      count: 0
+    template: metrics_service.yaml
+  - hasDocuments:
+      count: 0
+    template: app_deployment.yaml

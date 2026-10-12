@@ -1,0 +1,286 @@
+---
+suite: Worker HPA and KEDA
+templates:
+- worker_deployment.yaml
+- worker_hpa.yaml
+- worker_scaledobject.yaml
+release:
+  name: verify
+  namespace: test
+set:
+  global.image.repository: example/app
+  global.image.tag: test
+tests:
+- it: uses HPA by default for queue
+  set:
+    workers:
+    - name: jobs
+      type: queue
+      queue: emails
+      autoscaling:
+        enabled: true
+  asserts:
+  - equal:
+      path: spec.scaleTargetRef.name
+      value: verify-laravel-worker-jobs
+    template: worker_hpa.yaml
+  - equal:
+      path: spec.minReplicas
+      value: 1
+    template: worker_hpa.yaml
+  - equal:
+      path: spec.maxReplicas
+      value: 5
+    template: worker_hpa.yaml
+  - equal:
+      path: spec.metrics[0].resource.target.averageUtilization
+      value: 80
+    template: worker_hpa.yaml
+  - hasDocuments:
+      count: 0
+    template: worker_scaledobject.yaml
+  - notExists:
+      path: spec.replicas
+    template: worker_deployment.yaml
+- it: uses KEDA queue depth for queue
+  set:
+    global.metrics.enabled: true
+    workers:
+    - name: jobs
+      type: queue
+      queue: emails
+      autoscaling:
+        enabled: true
+        mode: keda
+        maxReplicas: 9
+        cooldownPeriod: 45
+        targetValue: 20
+  asserts:
+  - hasDocuments:
+      count: 0
+    template: worker_hpa.yaml
+  - equal:
+      path: spec.minReplicaCount
+      value: 0
+    template: worker_scaledobject.yaml
+  - equal:
+      path: spec.maxReplicaCount
+      value: 9
+    template: worker_scaledobject.yaml
+  - equal:
+      path: spec.cooldownPeriod
+      value: 45
+    template: worker_scaledobject.yaml
+  - equal:
+      path: spec.triggers[0].metadata
+      value:
+        url: http://verify-laravel-metrics.test.svc.cluster.local:8081/_metrics/queue-size?queues=emails
+        valueLocation: size
+        targetValue: '20'
+    template: worker_scaledobject.yaml
+  - equal:
+      path: spec.fallback
+      value:
+        failureThreshold: 3
+        replicas: 1
+    template: worker_scaledobject.yaml
+  - notExists:
+      path: spec.replicas
+    template: worker_deployment.yaml
+- it: uses HPA by default for horizon
+  set:
+    workers:
+    - name: jobs
+      type: horizon
+      queue: emails
+      autoscaling:
+        enabled: true
+  asserts:
+  - equal:
+      path: spec.scaleTargetRef.name
+      value: verify-laravel-worker-jobs
+    template: worker_hpa.yaml
+  - equal:
+      path: spec.minReplicas
+      value: 1
+    template: worker_hpa.yaml
+  - equal:
+      path: spec.maxReplicas
+      value: 5
+    template: worker_hpa.yaml
+  - equal:
+      path: spec.metrics[0].resource.target.averageUtilization
+      value: 80
+    template: worker_hpa.yaml
+  - hasDocuments:
+      count: 0
+    template: worker_scaledobject.yaml
+  - notExists:
+      path: spec.replicas
+    template: worker_deployment.yaml
+- it: uses KEDA queue depth for horizon
+  set:
+    global.metrics.enabled: true
+    workers:
+    - name: jobs
+      type: horizon
+      queue: emails
+      autoscaling:
+        enabled: true
+        mode: keda
+        maxReplicas: 9
+        cooldownPeriod: 45
+        targetValue: 20
+  asserts:
+  - hasDocuments:
+      count: 0
+    template: worker_hpa.yaml
+  - equal:
+      path: spec.minReplicaCount
+      value: 0
+    template: worker_scaledobject.yaml
+  - equal:
+      path: spec.maxReplicaCount
+      value: 9
+    template: worker_scaledobject.yaml
+  - equal:
+      path: spec.cooldownPeriod
+      value: 45
+    template: worker_scaledobject.yaml
+  - equal:
+      path: spec.triggers[0].metadata
+      value:
+        url: http://verify-laravel-metrics.test.svc.cluster.local:8081/_metrics/queue-size?queues=emails
+        valueLocation: size
+        targetValue: '20'
+    template: worker_scaledobject.yaml
+  - equal:
+      path: spec.fallback
+      value:
+        failureThreshold: 3
+        replicas: 1
+    template: worker_scaledobject.yaml
+  - notExists:
+      path: spec.replicas
+    template: worker_deployment.yaml
+- it: rejects KEDA without metrics
+  set:
+    workers:
+    - &1
+      name: jobs
+      type: queue
+      autoscaling:
+        enabled: true
+        mode: keda
+  asserts:
+  - failedTemplate:
+      errorPattern: requires global.metrics.enabled
+    template: worker_scaledobject.yaml
+- it: rejects KEDA without application pods
+  set:
+    global.metrics.enabled: true
+    app.enabled: false
+    workers:
+    - *1
+  asserts:
+  - failedTemplate:
+      errorPattern: requires app.enabled
+    template: worker_scaledobject.yaml
+- it: renders no worker autoscalers by default
+  set: {}
+  asserts:
+  - hasDocuments:
+      count: 0
+    template: worker_hpa.yaml
+  - hasDocuments:
+      count: 0
+    template: worker_scaledobject.yaml
+- it: omits disabled hpa workers and autoscalers
+  set:
+    workers:
+    - name: jobs
+      type: queue
+      autoscaling:
+        enabled: true
+        mode: hpa
+      enabled: false
+  asserts:
+  - hasDocuments:
+      count: 0
+    template: worker_deployment.yaml
+  - hasDocuments:
+      count: 0
+    template: worker_hpa.yaml
+  - hasDocuments:
+      count: 0
+    template: worker_scaledobject.yaml
+- it: omits disabled keda workers and autoscalers
+  set:
+    workers:
+    - name: jobs
+      type: queue
+      autoscaling:
+        enabled: true
+        mode: keda
+      enabled: false
+  asserts:
+  - hasDocuments:
+      count: 0
+    template: worker_deployment.yaml
+  - hasDocuments:
+      count: 0
+    template: worker_hpa.yaml
+  - hasDocuments:
+      count: 0
+    template: worker_scaledobject.yaml
+- it: configures explicit worker HPA bounds and memory metric
+  set:
+    workers:
+    - name: jobs
+      type: queue
+      autoscaling:
+        enabled: true
+        minReplicas: 2
+        maxReplicas: 8
+        targetCPUUtilizationPercentage: 65
+        targetMemoryUtilizationPercentage: 75
+  asserts:
+  - equal:
+      path: spec.minReplicas
+      value: 2
+    template: worker_hpa.yaml
+  - equal:
+      path: spec.maxReplicas
+      value: 8
+    template: worker_hpa.yaml
+  - equal:
+      path: spec.metrics[0].resource.target.averageUtilization
+      value: 65
+    template: worker_hpa.yaml
+  - equal:
+      path: spec.metrics[1].resource.target.averageUtilization
+      value: 75
+    template: worker_hpa.yaml
+- it: honors positive KEDA minimum and default target without a queue filter
+  set:
+    global.metrics.enabled: true
+    workers:
+    - name: jobs
+      type: queue
+      autoscaling:
+        enabled: true
+        mode: keda
+        minReplicas: 1
+  asserts:
+  - equal:
+      path: spec.minReplicaCount
+      value: 1
+    template: worker_scaledobject.yaml
+  - equal:
+      path: spec.triggers[0].metadata.url
+      value: http://verify-laravel-metrics.test.svc.cluster.local:8081/_metrics/queue-size
+    template: worker_scaledobject.yaml
+  - equal:
+      path: spec.triggers[0].metadata.targetValue
+      value: '10'
+    template: worker_scaledobject.yaml

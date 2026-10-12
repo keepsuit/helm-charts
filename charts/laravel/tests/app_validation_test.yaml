@@ -1,0 +1,68 @@
+---
+suite: Application values validation
+templates:
+- app_deployment.yaml
+set:
+  global.image.repository: example/app
+  global.image.tag: test
+tests:
+- it: rejects true as a probe override
+  set:
+    app.startupProbe: true
+  asserts:
+  - failedTemplate:
+      errorPattern: values don.t meet the specifications of the schema
+- it: rejects a zero probe period
+  set:
+    app.startupProbe.periodSeconds: 0
+  asserts:
+  - failedTemplate:
+      errorPattern: values don.t meet the specifications of the schema
+- it: rejects a negative failure threshold
+  set:
+    app.startupProbe.failureThreshold: -1
+  asserts:
+  - failedTemplate:
+      errorPattern: values don.t meet the specifications of the schema
+- it: rejects multiple startup successes
+  set:
+    app.startupProbe.successThreshold: 2
+  asserts:
+  - failedTemplate:
+      errorPattern: values don.t meet the specifications of the schema
+- it: rejects multiple liveness successes
+  set:
+    app.livenessProbe.successThreshold: 2
+  asserts:
+  - failedTemplate:
+      errorPattern: values don.t meet the specifications of the schema
+- it: rejects an empty exec command
+  set:
+    app.readinessProbe.exec.command: []
+  asserts:
+  - failedTemplate:
+      errorPattern: values don.t meet the specifications of the schema
+- it: rejects multiple probe handlers
+  set:
+    app.startupProbe:
+      httpGet:
+        port: http
+      exec:
+        command:
+        - 'true'
+  asserts:
+  - failedTemplate:
+      errorPattern: values don.t meet the specifications of the schema
+- it: rejects a zero progress deadline
+  set:
+    app.progressDeadlineSeconds: 0
+  asserts:
+  - failedTemplate:
+      errorPattern: values don.t meet the specifications of the schema
+- it: rejects non-string extra arguments
+  set:
+    app.octane.extraArgs:
+    - 500
+  asserts:
+  - failedTemplate:
+      errorPattern: values don.t meet the specifications of the schema

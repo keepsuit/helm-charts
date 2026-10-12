@@ -1,0 +1,38 @@
+name: Chart CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Helm 4
+        uses: azure/setup-helm@v5.0.1
+        with:
+          version: v4.3.0
+
+      - name: Install helm-unittest
+        run: helm plugin install https://github.com/helm-unittest/helm-unittest.git --version v1.2.1 --verify=false
+
+      - name: Lint chart
+        run: helm lint ./charts/laravel --strict --set global.image.repository=example/app --set global.image.tag=ci
+
+      - name: Test chart
+        run: helm unittest --strict ./charts/laravel

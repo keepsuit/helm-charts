@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+- Added Helm unit tests for all chart resources and a GitHub Actions lint/test workflow
+  using Helm 4.
+- Added independent application probe overrides, including timing and handler replacement,
+  per-probe disabling, an optional deployment progress deadline, and Octane extra arguments.
+
+### Fixes
+
+- `app.healthCheck.enabled: false` now disables probes in Octane mode as well.
+
 ## 0.7.13
 
 ### Features

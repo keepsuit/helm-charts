@@ -11,6 +11,9 @@ spec:
   {{- if not .Values.app.autoscaling.enabled }}
   replicas: {{ .Values.app.replicas }}
   {{- end }}
+  {{- with .Values.app.progressDeadlineSeconds }}
+  progressDeadlineSeconds: {{ . }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "laravel.appSelectorLabels" . | nindent 6 }}
@@ -54,6 +57,9 @@ spec:
             - "--host=0.0.0.0"
             - "--workers={{ .Values.app.octane.workers | default "auto" }}"
             - "--log-level={{ .Values.app.octane.logLevel | default "info" }}"
+            {{- range .Values.app.octane.extraArgs }}
+            - {{ . | quote }}
+            {{- end }}
           {{- end }}
           ports:
             - name: http
@@ -75,64 +81,14 @@ spec:
           volumeMounts:
             {{- include "laravel.secretVolumeMounts" $ | nindent 12 }}
           {{- end }}
+          {{- if .Values.app.healthCheck.enabled }}
+          {{- include "laravel.appProbes" . | nindent 10 }}
+          {{- end }}
           {{- if .Values.app.octane.enabled }}
-          startupProbe:
-            exec:
-              command:
-                - php
-                - artisan
-                - octane:status
-            periodSeconds: 2
-            timeoutSeconds: 5
-            failureThreshold: 60
-          readinessProbe:
-            exec:
-              command:
-                - php
-                - artisan
-                - octane:status
-            initialDelaySeconds: 0
-            periodSeconds: 5
-            timeoutSeconds: {{ .Values.app.healthCheck.timeoutSeconds }}
-            failureThreshold: {{ .Values.app.healthCheck.failureThreshold }}
-          livenessProbe:
-            exec:
-              command:
-                - php
-                - artisan
-                - octane:status
-            initialDelaySeconds: {{ .Values.app.healthCheck.initialDelaySeconds }}
-            periodSeconds: {{ .Values.app.healthCheck.periodSeconds }}
-            timeoutSeconds: {{ .Values.app.healthCheck.timeoutSeconds }}
-            failureThreshold: {{ .Values.app.healthCheck.failureThreshold }}
           lifecycle:
             preStop:
               exec:
                 command: ["php", "artisan", "octane:stop"]
-          {{- else if .Values.app.healthCheck.enabled }}
-          startupProbe:
-            httpGet:
-              path: {{ .Values.app.healthCheck.path | quote }}
-              port: {{ default .Values.app.port .Values.app.healthCheck.port }}
-            periodSeconds: 2
-            timeoutSeconds: 5
-            failureThreshold: 60
-          readinessProbe:
-            httpGet:
-              path: {{ .Values.app.healthCheck.path | quote }}
-              port: {{ default .Values.app.port .Values.app.healthCheck.port }}
-            initialDelaySeconds: 0
-            periodSeconds: 5
-            timeoutSeconds: {{ .Values.app.healthCheck.timeoutSeconds }}
-            failureThreshold: {{ .Values.app.healthCheck.failureThreshold }}
-          livenessProbe:
-            httpGet:
-              path: {{ .Values.app.healthCheck.path | quote }}
-              port: {{ default .Values.app.port .Values.app.healthCheck.port }}
-            initialDelaySeconds: {{ .Values.app.healthCheck.initialDelaySeconds }}
-            periodSeconds: {{ .Values.app.healthCheck.periodSeconds }}
-            timeoutSeconds: {{ .Values.app.healthCheck.timeoutSeconds }}
-            failureThreshold: {{ .Values.app.healthCheck.failureThreshold }}
           {{- end }}
       {{- with .Values.global.secretVolumes }}
       volumes:

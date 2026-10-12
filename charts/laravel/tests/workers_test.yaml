@@ -1,0 +1,258 @@
+---
+suite: Worker commands and resources
+templates:
+- worker_deployment.yaml
+release:
+  name: verify
+  namespace: test
+set:
+  global.image.repository: example/app
+  global.image.tag: test
+tests:
+- it: renders no workers by default
+  set: {}
+  asserts:
+  - hasDocuments:
+      count: 0
+- it: starts queue with the wrapper and resource fallback
+  set:
+    workers:
+    - name: jobs
+      type: queue
+      replicas: 3
+  asserts:
+  - equal:
+      path: metadata.name
+      value: verify-laravel-worker-jobs
+  - equal:
+      path: spec.replicas
+      value: 3
+  - equal:
+      path: spec.template.spec.containers[0].args
+      value:
+      - docker-laravel-worker
+      - queue
+      - "--queue=default"
+      - "--max-time=3600"
+      - "--memory=128"
+  - equal:
+      path: spec.template.spec.containers[0].env[1].value
+      value: queue
+  - equal:
+      path: spec.template.spec.containers[0].resources.requests.memory
+      value: 128Mi
+- it: starts horizon with the wrapper and resource fallback
+  set:
+    workers:
+    - name: jobs
+      type: horizon
+      replicas: 3
+  asserts:
+  - equal:
+      path: metadata.name
+      value: verify-laravel-worker-jobs
+  - equal:
+      path: spec.replicas
+      value: 3
+  - equal:
+      path: spec.template.spec.containers[0].args
+      value:
+      - docker-laravel-worker
+      - horizon
+  - equal:
+      path: spec.template.spec.containers[0].env[1].value
+      value: horizon
+  - equal:
+      path: spec.template.spec.containers[0].resources.requests.memory
+      value: 256Mi
+- it: starts scheduler with the wrapper and resource fallback
+  set:
+    workers:
+    - name: jobs
+      type: scheduler
+      replicas: 3
+  asserts:
+  - equal:
+      path: metadata.name
+      value: verify-laravel-worker-jobs
+  - equal:
+      path: spec.replicas
+      value: 1
+  - equal:
+      path: spec.template.spec.containers[0].args
+      value:
+      - docker-laravel-worker
+      - scheduler
+  - equal:
+      path: spec.template.spec.containers[0].env[1].value
+      value: scheduler
+  - equal:
+      path: spec.template.spec.containers[0].resources.requests.memory
+      value: 48Mi
+- it: starts combined with the wrapper and resource fallback
+  set:
+    workers:
+    - name: jobs
+      type: combined
+      replicas: 3
+  asserts:
+  - equal:
+      path: metadata.name
+      value: verify-laravel-worker-jobs
+  - equal:
+      path: spec.replicas
+      value: 1
+  - equal:
+      path: spec.template.spec.containers[0].args
+      value:
+      - docker-laravel-worker
+      - combined
+      - "--queue=default"
+      - "--max-time=3600"
+      - "--memory=128"
+  - equal:
+      path: spec.template.spec.containers[0].env[1].value
+      value: combined
+  - equal:
+      path: spec.template.spec.containers[0].resources.requests.memory
+      value: 192Mi
+- it: supports native queue commands
+  set:
+    global.workerCommand.useWrapper: false
+    workers:
+    - name: jobs
+      type: queue
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].args
+      value:
+      - php
+      - artisan
+      - queue:work
+      - "--queue=default"
+      - "--max-time=3600"
+      - "--memory=128"
+- it: supports native horizon commands
+  set:
+    global.workerCommand.useWrapper: false
+    workers:
+    - name: jobs
+      type: horizon
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].args
+      value:
+      - php
+      - artisan
+      - horizon
+  - equal:
+      path: spec.template.spec.containers[0].lifecycle.preStop.exec.command
+      value:
+      - php
+      - artisan
+      - horizon:terminate
+- it: supports native scheduler commands
+  set:
+    global.workerCommand.useWrapper: false
+    workers:
+    - name: jobs
+      type: scheduler
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].args
+      value:
+      - php
+      - artisan
+      - schedule:work
+- it: respects zero flags and null removal of inherited queue options
+  set:
+    workers:
+    - name: jobs
+      type: queue
+      queue: emails
+      queueOptions:
+        sleep: 0
+        tries: 3
+        timeout: 60
+        maxTime:
+        memory: 64
+        backoff: 5
+      resources:
+        requests:
+          cpu: 50m
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].args
+      value:
+      - docker-laravel-worker
+      - queue
+      - "--queue=emails"
+      - "--sleep=0"
+      - "--tries=3"
+      - "--timeout=60"
+      - "--memory=64"
+      - "--backoff=5"
+  - equal:
+      path: spec.template.spec.containers[0].resources
+      value:
+        requests:
+          cpu: 50m
+- it: omits disabled workers without dropping enabled siblings
+  set:
+    workers:
+    - name: 'off'
+      type: queue
+      enabled: false
+    - name: 'on'
+      type: horizon
+  asserts:
+  - hasDocuments:
+      count: 1
+  - equal:
+      path: metadata.name
+      value: verify-laravel-worker-on
+- it: rejects combined workers without the wrapper
+  set:
+    global.workerCommand.useWrapper: false
+    workers:
+    - name: jobs
+      type: combined
+  asserts:
+  - failedTemplate:
+      errorPattern: combined require global.workerCommand.useWrapper=true
+- it: rejects autoscaling for scheduler
+  set:
+    workers:
+    - name: jobs
+      type: scheduler
+      autoscaling:
+        enabled: true
+  asserts:
+  - failedTemplate:
+      errorPattern: cannot enable autoscaling
+- it: rejects autoscaling for combined
+  set:
+    workers:
+    - name: jobs
+      type: combined
+      autoscaling:
+        enabled: true
+  asserts:
+  - failedTemplate:
+      errorPattern: cannot enable autoscaling
+- it: rejects invalid worker names
+  set:
+    workers:
+    - name: Bad_Name
+      type: queue
+  asserts:
+  - failedTemplate:
+      errorPattern: schema
+- it: rejects unsupported worker types
+  set:
+    workers:
+    - name: jobs
+      type: unknown
+  asserts:
+  - failedTemplate:
+      errorPattern: schema

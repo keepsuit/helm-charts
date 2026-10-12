@@ -21,3 +21,5 @@
 .idea/
 *.tmproj
 .vscode/
+# Local helm-unittest suites are not release resources.
+tests/
