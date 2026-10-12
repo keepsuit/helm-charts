@@ -6,11 +6,11 @@ Helm charts for deploying applications and related Kubernetes workloads.
 
 | Chart | Version | Description |
 | --- | --- | --- |
-| [laravel](charts/laravel/) | 0.7.4 | Deploys a Laravel application. |
+| [laravel](charts/laravel/) | 0.7 | Deploys a Laravel application. |
 
 ## Requirements
 
-- Helm 3
+- Helm 4
 - A Kubernetes cluster configured in the current context
 - A values file appropriate for the chart you are deploying
 - A container image compatible with that chart's workloads
