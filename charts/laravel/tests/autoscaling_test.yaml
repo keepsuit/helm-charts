@@ -1,0 +1,214 @@
+---
+suite: Application and Reverb autoscaling and disruption budgets
+templates:
+- app_hpa.yaml
+- app_pdb.yaml
+- app_deployment.yaml
+- reverb_hpa.yaml
+- reverb_pdb.yaml
+- reverb_deployment.yaml
+release:
+  name: verify
+  namespace: test
+set:
+  global.image.repository: example/app
+  global.image.tag: test
+tests:
+- it: omits app HPA when disabled
+  set:
+    app.enabled: true
+  asserts:
+  - hasDocuments:
+      count: 0
+    template: app_hpa.yaml
+- it: configures app HPA and relinquishes replicas
+  set:
+    app.enabled: true
+    app.autoscaling.enabled: true
+    app.autoscaling.minReplicas: 2
+    app.autoscaling.maxReplicas: 7
+    app.autoscaling.targetCPUUtilizationPercentage: 70
+    app.autoscaling.targetMemoryUtilizationPercentage: 80
+  asserts:
+  - equal:
+      path: spec.scaleTargetRef.name
+      value: verify-laravel-app
+    template: app_hpa.yaml
+  - equal:
+      path: spec.minReplicas
+      value: 2
+    template: app_hpa.yaml
+  - equal:
+      path: spec.maxReplicas
+      value: 7
+    template: app_hpa.yaml
+  - equal:
+      path: spec.metrics
+      value:
+      - type: Resource
+        resource:
+          name: cpu
+          target:
+            type: Utilization
+            averageUtilization: 70
+      - &1
+        type: Resource
+        resource:
+          name: memory
+          target:
+            type: Utilization
+            averageUtilization: 80
+    template: app_hpa.yaml
+  - notExists:
+      path: spec.replicas
+    template: app_deployment.yaml
+- it: supports app memory-only HPA
+  set:
+    app.enabled: true
+    app.autoscaling.enabled: true
+    app.autoscaling.minReplicas: 2
+    app.autoscaling.maxReplicas: 7
+    app.autoscaling.targetCPUUtilizationPercentage:
+    app.autoscaling.targetMemoryUtilizationPercentage: 80
+  asserts:
+  - equal:
+      path: spec.metrics
+      value:
+      - *1
+    template: app_hpa.yaml
+- it: omits app PDB for a single replica
+  set:
+    app.enabled: true
+    app.replicas: 1
+  asserts:
+  - hasDocuments:
+      count: 0
+    template: app_pdb.yaml
+- it: protects app replicas with component selectors
+  set:
+    app.enabled: true
+    app.replicas: 3
+    app.minAvailable: 2
+  asserts:
+  - equal:
+      path: spec.minAvailable
+      value: 2
+    template: app_pdb.yaml
+  - equal:
+      path: spec.selector.matchLabels["app.kubernetes.io/instance"]
+      value: verify
+    template: app_pdb.yaml
+  - equal:
+      path: metadata.name
+      value: verify-laravel-app
+    template: app_pdb.yaml
+- it: omits app HPA and PDB when workload is disabled
+  set:
+    app.enabled: false
+    app.autoscaling.enabled: true
+  asserts:
+  - hasDocuments:
+      count: 0
+    template: app_hpa.yaml
+  - hasDocuments:
+      count: 0
+    template: app_pdb.yaml
+- it: omits reverb HPA when disabled
+  set:
+    reverb.enabled: true
+  asserts:
+  - hasDocuments:
+      count: 0
+    template: reverb_hpa.yaml
+- it: configures reverb HPA and relinquishes replicas
+  set:
+    reverb.enabled: true
+    reverb.autoscaling.enabled: true
+    reverb.autoscaling.minReplicas: 2
+    reverb.autoscaling.maxReplicas: 7
+    reverb.autoscaling.targetCPUUtilizationPercentage: 70
+    reverb.autoscaling.targetMemoryUtilizationPercentage: 80
+  asserts:
+  - equal:
+      path: spec.scaleTargetRef.name
+      value: verify-laravel-reverb
+    template: reverb_hpa.yaml
+  - equal:
+      path: spec.minReplicas
+      value: 2
+    template: reverb_hpa.yaml
+  - equal:
+      path: spec.maxReplicas
+      value: 7
+    template: reverb_hpa.yaml
+  - equal:
+      path: spec.metrics
+      value:
+      - type: Resource
+        resource:
+          name: cpu
+          target:
+            type: Utilization
+            averageUtilization: 70
+      - &2
+        type: Resource
+        resource:
+          name: memory
+          target:
+            type: Utilization
+            averageUtilization: 80
+    template: reverb_hpa.yaml
+  - notExists:
+      path: spec.replicas
+    template: reverb_deployment.yaml
+- it: supports reverb memory-only HPA
+  set:
+    reverb.enabled: true
+    reverb.autoscaling.enabled: true
+    reverb.autoscaling.minReplicas: 2
+    reverb.autoscaling.maxReplicas: 7
+    reverb.autoscaling.targetCPUUtilizationPercentage:
+    reverb.autoscaling.targetMemoryUtilizationPercentage: 80
+  asserts:
+  - equal:
+      path: spec.metrics
+      value:
+      - *2
+    template: reverb_hpa.yaml
+- it: omits reverb PDB for a single replica
+  set:
+    reverb.enabled: true
+    reverb.replicas: 1
+  asserts:
+  - hasDocuments:
+      count: 0
+    template: reverb_pdb.yaml
+- it: protects reverb replicas with component selectors
+  set:
+    reverb.enabled: true
+    reverb.replicas: 3
+    reverb.minAvailable: 2
+  asserts:
+  - equal:
+      path: spec.minAvailable
+      value: 2
+    template: reverb_pdb.yaml
+  - equal:
+      path: spec.selector.matchLabels["app.kubernetes.io/instance"]
+      value: verify
+    template: reverb_pdb.yaml
+  - equal:
+      path: metadata.name
+      value: verify-laravel-reverb
+    template: reverb_pdb.yaml
+- it: omits reverb HPA and PDB when workload is disabled
+  set:
+    reverb.enabled: false
+    reverb.autoscaling.enabled: true
+  asserts:
+  - hasDocuments:
+      count: 0
+    template: reverb_hpa.yaml
+  - hasDocuments:
+      count: 0
+    template: reverb_pdb.yaml

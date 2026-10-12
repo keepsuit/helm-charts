@@ -1,0 +1,717 @@
+---
+suite: Shared workload configuration
+templates:
+- app_deployment.yaml
+- reverb_deployment.yaml
+- worker_deployment.yaml
+- hook_pre_deploy.yaml
+- hook_post_deploy.yaml
+- serviceaccount.yaml
+release:
+  name: verify
+  namespace: test
+set:
+  global.image.repository: example/app
+  global.image.tag: test
+tests:
+- it: uses the image tag as application version in every workload
+  set:
+    reverb.enabled: true
+    workers: &1
+    - name: jobs
+      type: queue
+    hooks.preDeploy.enabled: true
+    hooks.preDeploy.commands: &2
+    - php artisan prepare
+    hooks.postDeploy.enabled: true
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].image
+      value: example/app:test
+    template: app_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].env[0]
+      value:
+        name: APP_VERSION
+        value: test
+    template: app_deployment.yaml
+  - equal:
+      path: spec.template.spec.serviceAccountName
+      value: verify-laravel
+    template: app_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].image
+      value: example/app:test
+    template: reverb_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].env[0]
+      value:
+        name: APP_VERSION
+        value: test
+    template: reverb_deployment.yaml
+  - equal:
+      path: spec.template.spec.serviceAccountName
+      value: verify-laravel
+    template: reverb_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].image
+      value: example/app:test
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].env[0]
+      value:
+        name: APP_VERSION
+        value: test
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.template.spec.serviceAccountName
+      value: verify-laravel
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].image
+      value: example/app:test
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: spec.template.spec.containers[0].env[0]
+      value:
+        name: APP_VERSION
+        value: test
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: spec.template.spec.serviceAccountName
+      value: verify-laravel
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: spec.template.spec.containers[0].image
+      value: example/app:test
+    template: hook_post_deploy.yaml
+  - equal:
+      path: spec.template.spec.containers[0].env[0]
+      value:
+        name: APP_VERSION
+        value: test
+    template: hook_post_deploy.yaml
+  - equal:
+      path: spec.template.spec.serviceAccountName
+      value: verify-laravel
+    template: hook_post_deploy.yaml
+- it: supports an application version independent of image tag
+  set:
+    reverb.enabled: true
+    workers: *1
+    hooks.preDeploy.enabled: true
+    hooks.preDeploy.commands: *2
+    hooks.postDeploy.enabled: true
+    global.appVersion: release-42
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].env[0].value
+      value: release-42
+    template: app_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].env[0].value
+      value: release-42
+    template: reverb_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].env[0].value
+      value: release-42
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].env[0].value
+      value: release-42
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: spec.template.spec.containers[0].env[0].value
+      value: release-42
+    template: hook_post_deploy.yaml
+- it: adds service account annotations and uses fullname overrides consistently
+  set:
+    fullnameOverride: custom
+    global.serviceAccountAnnotations:
+      example.com/role: app
+  asserts:
+  - equal:
+      path: metadata.name
+      value: custom
+    template: serviceaccount.yaml
+  - equal:
+      path: metadata.annotations
+      value:
+        example.com/role: app
+    template: serviceaccount.yaml
+  - equal:
+      path: spec.template.spec.serviceAccountName
+      value: custom
+    template: app_deployment.yaml
+  - equal:
+      path: metadata.name
+      value: custom-app
+    template: app_deployment.yaml
+- it: truncates service account names to Kubernetes limits
+  set:
+    fullnameOverride: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  asserts:
+  - equal:
+      path: metadata.name
+      value: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    template: serviceaccount.yaml
+- it: supports chart name overrides without duplicating the release prefix
+  set:
+    nameOverride: web
+  asserts:
+  - equal:
+      path: metadata.name
+      value: verify-web
+    template: serviceaccount.yaml
+  - equal:
+      path: metadata.name
+      value: verify-web-app
+    template: app_deployment.yaml
+- it: merges local pod metadata without mutating global settings
+  set:
+    reverb.enabled: true
+    workers:
+    - name: jobs
+      type: queue
+      podLabels:
+        shared: worker
+      podAnnotations:
+        shared: worker
+    hooks.preDeploy.enabled: true
+    hooks.preDeploy.commands: *2
+    hooks.postDeploy.enabled: true
+    global.podLabels:
+      shared: global
+      global-only: present
+    global.podAnnotations:
+      shared: global
+      global-only: present
+    app.podLabels:
+      shared: app
+    app.podAnnotations:
+      shared: app
+    reverb.podLabels:
+      shared: reverb
+    reverb.podAnnotations:
+      shared: reverb
+  asserts:
+  - equal:
+      path: spec.template.metadata.labels.shared
+      value: app
+    template: app_deployment.yaml
+  - equal:
+      path: spec.template.metadata.labels["global-only"]
+      value: present
+    template: app_deployment.yaml
+  - equal:
+      path: spec.template.metadata.annotations
+      value:
+        shared: app
+        global-only: present
+    template: app_deployment.yaml
+  - equal:
+      path: spec.template.metadata.labels["app.kubernetes.io/instance"]
+      value: verify
+    template: app_deployment.yaml
+  - equal:
+      path: spec.template.metadata.labels.shared
+      value: reverb
+    template: reverb_deployment.yaml
+  - equal:
+      path: spec.template.metadata.labels["global-only"]
+      value: present
+    template: reverb_deployment.yaml
+  - equal:
+      path: spec.template.metadata.annotations
+      value:
+        shared: reverb
+        global-only: present
+    template: reverb_deployment.yaml
+  - equal:
+      path: spec.template.metadata.labels["app.kubernetes.io/instance"]
+      value: verify
+    template: reverb_deployment.yaml
+  - equal:
+      path: spec.template.metadata.labels.shared
+      value: worker
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.template.metadata.labels["global-only"]
+      value: present
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.template.metadata.annotations
+      value:
+        shared: worker
+        global-only: present
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.template.metadata.labels["app.kubernetes.io/instance"]
+      value: verify
+    template: worker_deployment.yaml
+- it: mounts Secret files and inherits security settings in every workload
+  set:
+    reverb.enabled: true
+    workers: *1
+    hooks.preDeploy.enabled: true
+    hooks.preDeploy.commands: *2
+    hooks.postDeploy.enabled: true
+    global.imagePullSecrets:
+    - name: registry
+    global.podSecurityContext:
+      runAsNonRoot: true
+    global.securityContext:
+      allowPrivilegeEscalation: false
+    global.secretVolumes:
+    - name: runtime
+      mountPath: "/app/config"
+      items:
+      - key: settings.json
+        path: settings.json
+  asserts:
+  - equal:
+      path: spec.template.spec.imagePullSecrets
+      value:
+      - name: registry
+    template: app_deployment.yaml
+  - equal:
+      path: spec.template.spec.securityContext
+      value:
+        runAsNonRoot: true
+    template: app_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].securityContext
+      value:
+        allowPrivilegeEscalation: false
+    template: app_deployment.yaml
+  - equal:
+      path: spec.template.spec.volumes
+      value:
+      - name: runtime
+        secret:
+          secretName: runtime
+          items:
+          - key: settings.json
+            path: settings.json
+    template: app_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].volumeMounts
+      value:
+      - name: runtime
+        mountPath: "/app/config/settings.json"
+        subPath: settings.json
+        readOnly: true
+    template: app_deployment.yaml
+  - equal:
+      path: spec.template.spec.imagePullSecrets
+      value:
+      - name: registry
+    template: reverb_deployment.yaml
+  - equal:
+      path: spec.template.spec.securityContext
+      value:
+        runAsNonRoot: true
+    template: reverb_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].securityContext
+      value:
+        allowPrivilegeEscalation: false
+    template: reverb_deployment.yaml
+  - equal:
+      path: spec.template.spec.volumes
+      value:
+      - name: runtime
+        secret:
+          secretName: runtime
+          items:
+          - key: settings.json
+            path: settings.json
+    template: reverb_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].volumeMounts
+      value:
+      - name: runtime
+        mountPath: "/app/config/settings.json"
+        subPath: settings.json
+        readOnly: true
+    template: reverb_deployment.yaml
+  - equal:
+      path: spec.template.spec.imagePullSecrets
+      value:
+      - name: registry
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.template.spec.securityContext
+      value:
+        runAsNonRoot: true
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].securityContext
+      value:
+        allowPrivilegeEscalation: false
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.template.spec.volumes
+      value:
+      - name: runtime
+        secret:
+          secretName: runtime
+          items:
+          - key: settings.json
+            path: settings.json
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].volumeMounts
+      value:
+      - name: runtime
+        mountPath: "/app/config/settings.json"
+        subPath: settings.json
+        readOnly: true
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.template.spec.imagePullSecrets
+      value:
+      - name: registry
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: spec.template.spec.securityContext
+      value:
+        runAsNonRoot: true
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: spec.template.spec.containers[0].securityContext
+      value:
+        allowPrivilegeEscalation: false
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: spec.template.spec.volumes
+      value:
+      - name: runtime
+        secret:
+          secretName: runtime
+          items:
+          - key: settings.json
+            path: settings.json
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: spec.template.spec.containers[0].volumeMounts
+      value:
+      - name: runtime
+        mountPath: "/app/config/settings.json"
+        subPath: settings.json
+        readOnly: true
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: spec.template.spec.imagePullSecrets
+      value:
+      - name: registry
+    template: hook_post_deploy.yaml
+  - equal:
+      path: spec.template.spec.securityContext
+      value:
+        runAsNonRoot: true
+    template: hook_post_deploy.yaml
+  - equal:
+      path: spec.template.spec.containers[0].securityContext
+      value:
+        allowPrivilegeEscalation: false
+    template: hook_post_deploy.yaml
+  - equal:
+      path: spec.template.spec.volumes
+      value:
+      - name: runtime
+        secret:
+          secretName: runtime
+          items:
+          - key: settings.json
+            path: settings.json
+    template: hook_post_deploy.yaml
+  - equal:
+      path: spec.template.spec.containers[0].volumeMounts
+      value:
+      - name: runtime
+        mountPath: "/app/config/settings.json"
+        subPath: settings.json
+        readOnly: true
+    template: hook_post_deploy.yaml
+- it: preserves global and workload environment ordering
+  set:
+    reverb.enabled: true
+    workers:
+    - name: jobs
+      type: queue
+      env:
+      - name: LOCAL_VALUE
+        value: worker
+      envFrom:
+      - secretRef:
+          name: worker-config
+    hooks.preDeploy.enabled: true
+    hooks.preDeploy.commands: *2
+    hooks.postDeploy.enabled: true
+    global.env:
+    - name: GLOBAL_VALUE
+      value: global
+    global.envFrom:
+    - configMapRef:
+        name: global-config
+    app.env:
+    - name: LOCAL_VALUE
+      value: app
+    app.envFrom:
+    - secretRef:
+        name: app-config
+    reverb.env:
+    - name: LOCAL_VALUE
+      value: reverb
+    reverb.envFrom:
+    - secretRef:
+        name: reverb-config
+    hooks.preDeploy.env:
+    - name: LOCAL_VALUE
+      value: pre
+    hooks.preDeploy.envFrom:
+    - secretRef:
+        name: pre-config
+    hooks.postDeploy.env:
+    - name: LOCAL_VALUE
+      value: post
+    hooks.postDeploy.envFrom:
+    - secretRef:
+        name: post-config
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].envFrom
+      value:
+      - configMapRef:
+          name: global-config
+      - secretRef:
+          name: app-config
+    template: app_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].env[-2]
+      value:
+        name: GLOBAL_VALUE
+        value: global
+    template: app_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].env[-1]
+      value:
+        name: LOCAL_VALUE
+        value: app
+    template: app_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].envFrom
+      value:
+      - configMapRef:
+          name: global-config
+      - secretRef:
+          name: reverb-config
+    template: reverb_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].env[-2]
+      value:
+        name: GLOBAL_VALUE
+        value: global
+    template: reverb_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].env[-1]
+      value:
+        name: LOCAL_VALUE
+        value: reverb
+    template: reverb_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].envFrom
+      value:
+      - configMapRef:
+          name: global-config
+      - secretRef:
+          name: worker-config
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].env[-2]
+      value:
+        name: GLOBAL_VALUE
+        value: global
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].env[-1]
+      value:
+        name: LOCAL_VALUE
+        value: worker
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].envFrom
+      value:
+      - configMapRef:
+          name: global-config
+      - secretRef:
+          name: pre-config
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: spec.template.spec.containers[0].env[-2]
+      value:
+        name: GLOBAL_VALUE
+        value: global
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: spec.template.spec.containers[0].env[-1]
+      value:
+        name: LOCAL_VALUE
+        value: pre
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: spec.template.spec.containers[0].envFrom
+      value:
+      - configMapRef:
+          name: global-config
+      - secretRef:
+          name: post-config
+    template: hook_post_deploy.yaml
+  - equal:
+      path: spec.template.spec.containers[0].env[-2]
+      value:
+        name: GLOBAL_VALUE
+        value: global
+    template: hook_post_deploy.yaml
+  - equal:
+      path: spec.template.spec.containers[0].env[-1]
+      value:
+        name: LOCAL_VALUE
+        value: post
+    template: hook_post_deploy.yaml
+- it: inherits scheduling and applies workload node selector overrides
+  set:
+    reverb.enabled: true
+    workers:
+    - name: jobs
+      type: queue
+      nodeSelector:
+        pool: worker
+    hooks.preDeploy.enabled: true
+    hooks.preDeploy.commands: *2
+    hooks.postDeploy.enabled: true
+    global.nodeSelector:
+      arch: amd64
+      pool: global
+    global.tolerations:
+    - key: workload
+      operator: Exists
+    global.affinity: &3
+      nodeAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 1
+          preference:
+            matchExpressions:
+            - key: zone
+              operator: In
+              values:
+              - west
+    app.nodeSelector:
+      pool: app
+    reverb.nodeSelector:
+      pool: reverb
+  asserts:
+  - equal:
+      path: spec.template.spec.nodeSelector
+      value:
+        arch: amd64
+        pool: app
+    template: app_deployment.yaml
+  - equal:
+      path: spec.template.spec.tolerations
+      value:
+      - key: workload
+        operator: Exists
+    template: app_deployment.yaml
+  - equal:
+      path: spec.template.spec.affinity
+      value: *3
+    template: app_deployment.yaml
+  - equal:
+      path: spec.template.spec.nodeSelector
+      value:
+        arch: amd64
+        pool: reverb
+    template: reverb_deployment.yaml
+  - equal:
+      path: spec.template.spec.tolerations
+      value:
+      - key: workload
+        operator: Exists
+    template: reverb_deployment.yaml
+  - equal:
+      path: spec.template.spec.affinity
+      value: *3
+    template: reverb_deployment.yaml
+  - equal:
+      path: spec.template.spec.nodeSelector
+      value:
+        arch: amd64
+        pool: worker
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.template.spec.tolerations
+      value:
+      - key: workload
+        operator: Exists
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.template.spec.affinity
+      value: *3
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.template.spec.nodeSelector
+      value:
+        arch: amd64
+        pool: global
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: spec.template.spec.tolerations
+      value:
+      - key: workload
+        operator: Exists
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: spec.template.spec.affinity
+      value: *3
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: spec.template.spec.nodeSelector
+      value:
+        arch: amd64
+        pool: global
+    template: hook_post_deploy.yaml
+  - equal:
+      path: spec.template.spec.tolerations
+      value:
+      - key: workload
+        operator: Exists
+    template: hook_post_deploy.yaml
+  - equal:
+      path: spec.template.spec.affinity
+      value: *3
+    template: hook_post_deploy.yaml
+- it: rejects overrides of chart-owned environment variables
+  set:
+    global.env:
+    - name: APP_VERSION
+      value: override
+  asserts:
+  - failedTemplate:
+      errorPattern: chart-owned
+    template: app_deployment.yaml
+- it: requires an image repository
+  set:
+    global.image.repository: ''
+  asserts:
+  - failedTemplate:
+      errorPattern: global.image.repository is required
+    template: app_deployment.yaml
+- it: requires an image tag
+  set:
+    global.image.tag: ''
+  asserts:
+  - failedTemplate:
+      errorPattern: global.image.tag is required
+    template: app_deployment.yaml

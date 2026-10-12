@@ -1,0 +1,136 @@
+---
+suite: Ingress routing and TLS
+templates:
+- ingress.yaml
+release:
+  name: verify
+  namespace: test
+set:
+  global.image.repository: example/app
+  global.image.tag: test
+tests:
+- it: omits ingress by default
+  set: {}
+  asserts:
+  - hasDocuments:
+      count: 0
+- it: routes app and Reverb to their configured service ports
+  set:
+    routing.ingress.enabled: true
+    routing.ingress.className: nginx
+    routing.ingress.annotations:
+      example.com/setting: 'on'
+    routing.ingress.routes:
+    - service: app
+      host: app.example.com
+      paths:
+      - path: "/"
+        pathType: Prefix
+    - service: reverb
+      host: ws.example.com
+      paths:
+      - path: "/app"
+        pathType: Prefix
+    app.service.port: 80
+    reverb.enabled: true
+    reverb.service.port: 9000
+  asserts:
+  - equal:
+      path: spec.ingressClassName
+      value: nginx
+  - equal:
+      path: metadata.annotations
+      value:
+        example.com/setting: 'on'
+  - equal:
+      path: spec.rules[0].http.paths[0].backend.service
+      value:
+        name: verify-laravel-app
+        port:
+          number: 80
+  - equal:
+      path: spec.rules[1].http.paths[0].backend.service
+      value:
+        name: verify-laravel-reverb
+        port:
+          number: 9000
+- it: uses default path and application port
+  set:
+    routing.ingress.enabled: true
+    routing.ingress.routes:
+    - service: app
+      host: app.example.com
+      paths:
+      - {}
+  asserts:
+  - equal:
+      path: spec.rules[0].http.paths[0]
+      value:
+        path: "/"
+        pathType: Prefix
+        backend:
+          service:
+            name: verify-laravel-app
+            port:
+              number: 8080
+- it: accepts TLS hosts
+  set:
+    routing.ingress.enabled: true
+    routing.ingress.tls:
+    - app.example.com
+  asserts:
+  - equal:
+      path: spec.tls
+      value:
+      - hosts:
+        - app.example.com
+        secretName: verify-laravel-tls
+- it: accepts TLS objects
+  set:
+    routing.ingress.enabled: true
+    routing.ingress.tls:
+    - hosts:
+      - app.example.com
+      secretName: custom-tls
+  asserts:
+  - equal:
+      path: spec.tls
+      value:
+      - hosts:
+        - app.example.com
+        secretName: custom-tls
+- it: rejects routes to disabled app
+  set:
+    routing.ingress.enabled: true
+    app.enabled: false
+    routing.ingress.routes:
+    - service: app
+      host: example.com
+      paths:
+      - path: "/"
+  asserts:
+  - failedTemplate:
+      errorPattern: references app but app.enabled=false
+- it: rejects routes to disabled reverb
+  set:
+    routing.ingress.enabled: true
+    reverb.enabled: false
+    routing.ingress.routes:
+    - service: reverb
+      host: example.com
+      paths:
+      - path: "/"
+  asserts:
+  - failedTemplate:
+      errorPattern: references reverb but reverb.enabled=false
+- it: rejects unsupported ingress backends
+  set:
+    routing.ingress.enabled: true
+    routing.ingress.routes:
+    - service: worker
+      host: example.com
+      paths:
+      - path: "/"
+  asserts:
+  - failedTemplate:
+      errorPattern: schema|unsupported service

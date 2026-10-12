@@ -1,0 +1,114 @@
+---
+suite: Deployment hooks
+templates:
+- hook_pre_deploy.yaml
+- hook_post_deploy.yaml
+release:
+  name: verify
+  namespace: test
+set:
+  global.image.repository: example/app
+  global.image.tag: test
+tests:
+- it: omits preDeploy by default
+  set: {}
+  asserts:
+  - hasDocuments:
+      count: 0
+    template: hook_pre_deploy.yaml
+- it: runs preDeploy commands in order with the correct hook phase
+  set:
+    hooks.preDeploy.enabled: true
+    hooks.preDeploy.commands:
+    - php artisan first
+    - php artisan second
+  asserts:
+  - equal:
+      path: metadata.annotations["helm.sh/hook"]
+      value: pre-install,pre-upgrade
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: metadata.annotations["helm.sh/hook-delete-policy"]
+      value: before-hook-creation
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: spec.template.spec.containers[0].args
+      value:
+      - sh
+      - "-c"
+      - php artisan first && php artisan second
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: spec.template.spec.containers[0].env[1].value
+      value: pre-deploy
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: spec.template.spec.containers[0].env[2]
+      value:
+        name: AUTORUN_LARAVEL_OPTIMIZE
+        value: 'false'
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: spec.template.spec.restartPolicy
+      value: Never
+    template: hook_pre_deploy.yaml
+- it: omits postDeploy by default
+  set: {}
+  asserts:
+  - hasDocuments:
+      count: 0
+    template: hook_post_deploy.yaml
+- it: runs postDeploy commands in order with the correct hook phase
+  set:
+    hooks.postDeploy.enabled: true
+    hooks.postDeploy.commands:
+    - php artisan first
+    - php artisan second
+  asserts:
+  - equal:
+      path: metadata.annotations["helm.sh/hook"]
+      value: post-install,post-upgrade
+    template: hook_post_deploy.yaml
+  - equal:
+      path: metadata.annotations["helm.sh/hook-delete-policy"]
+      value: before-hook-creation
+    template: hook_post_deploy.yaml
+  - equal:
+      path: spec.template.spec.containers[0].args
+      value:
+      - sh
+      - "-c"
+      - php artisan first && php artisan second
+    template: hook_post_deploy.yaml
+  - equal:
+      path: spec.template.spec.containers[0].env[1].value
+      value: post-deploy
+    template: hook_post_deploy.yaml
+  - equal:
+      path: spec.template.spec.containers[0].env[2]
+      value:
+        name: AUTORUN_LARAVEL_OPTIMIZE
+        value: 'false'
+    template: hook_post_deploy.yaml
+  - equal:
+      path: spec.template.spec.restartPolicy
+      value: Never
+    template: hook_post_deploy.yaml
+- it: rejects an enabled pre-deploy hook without commands
+  set:
+    hooks.preDeploy.enabled: true
+  asserts:
+  - failedTemplate:
+      errorPattern: must contain at least one command
+    template: hook_pre_deploy.yaml
+- it: retains the default migration command for post-deploy
+  set:
+    hooks.postDeploy.enabled: true
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].args
+      value:
+      - sh
+      - "-c"
+      - php artisan migrate --force -n
+    template: hook_post_deploy.yaml

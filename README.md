@@ -67,11 +67,26 @@ Validate all charts with Chart Testing:
 ct lint --config ct.yaml
 ~~~
 
-Run the Laravel application's manifest regression checks (requires Helm, Ruby, and Minitest):
+Run the Laravel chart's YAML manifest regression checks with Helm 4 and
+[helm-unittest](https://github.com/helm-unittest/helm-unittest):
 
 ~~~sh
-ruby tests/laravel_app_configuration_test.rb
+helm plugin install https://github.com/helm-unittest/helm-unittest.git --version v1.2.1 --verify=false
+helm unittest --strict ./charts/laravel
 ~~~
+
+Helm 4 requires `--verify=false` for the Git-based plugin installation, as documented by
+helm-unittest. The suites under `charts/laravel/tests/` run locally without a cluster and
+are excluded from chart packages. They cover probes, Octane, workers, HPA/KEDA, Reverb,
+services, disruption budgets, ingress/TLS, deployment hooks, shared pod settings, and
+invalid configuration.
+
+The `Chart CI` GitHub Actions workflow runs strict Helm lint and these suites on pull
+requests and pushes to `main`, and can also be started manually. CI uses Helm 4.3.0 and
+helm-unittest 1.2.1; it does not install a release or access a Kubernetes cluster.
+
+Helm's built-in `helm test <release>` instead runs test workloads against an installed
+release; it is intended for deployment smoke checks rather than these rendering checks.
 
 ## Inspecting a release
 

@@ -1,0 +1,67 @@
+---
+suite: Reverb deployment
+templates:
+- reverb_deployment.yaml
+release:
+  name: verify
+  namespace: test
+set:
+  global.image.repository: example/app
+  global.image.tag: test
+tests:
+- it: omits Reverb by default
+  set: {}
+  asserts:
+  - hasDocuments:
+      count: 0
+- it: starts Reverb with its port and probes
+  set:
+    reverb.enabled: true
+    reverb.port: 9000
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].args
+      value:
+      - php
+      - artisan
+      - "--host=0.0.0.0"
+      - "--port=9000"
+      - reverb:start
+  - equal:
+      path: spec.template.spec.containers[0].ports[0].containerPort
+      value: 9000
+  - equal:
+      path: spec.template.spec.containers[0].env[2]
+      value:
+        name: REVERB_SCALING_ENABLED
+        value: 'false'
+  - equal:
+      path: spec.template.spec.containers[0].readinessProbe.tcpSocket.port
+      value: 9000
+  - equal:
+      path: spec.template.spec.containers[0].livenessProbe.tcpSocket.port
+      value: 9000
+- it: enables debug and scaling with multiple Reverb replicas
+  set:
+    reverb.enabled: true
+    reverb.debug: true
+    reverb.replicas: 2
+  asserts:
+  - equal:
+      path: spec.replicas
+      value: 2
+  - equal:
+      path: spec.template.spec.containers[0].args[2]
+      value: "--debug"
+  - equal:
+      path: spec.template.spec.containers[0].env[2].value
+      value: 'true'
+- it: disables Reverb probes independently of startup arguments
+  set:
+    reverb.enabled: true
+    reverb.healthCheck.enabled: false
+  asserts:
+  - notExists:
+      path: spec.template.spec.containers[0].readinessProbe
+  - notExists:
+      path: spec.template.spec.containers[0].livenessProbe
