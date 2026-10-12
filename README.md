@@ -67,6 +67,12 @@ Validate all charts with Chart Testing:
 ct lint --config ct.yaml
 ~~~
 
+Run the Laravel application's manifest regression checks (requires Helm, Ruby, and Minitest):
+
+~~~sh
+ruby tests/laravel_app_configuration_test.rb
+~~~
+
 ## Inspecting a release
 
 ~~~

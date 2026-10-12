@@ -56,6 +56,8 @@ app:
     enabled: false
     workers: auto
     logLevel: info
+    # Extra Octane arguments, each passed as a separate argument without a shell.
+    extraArgs: []
   healthCheck:
     enabled: true
     path: /healthcheck
@@ -64,6 +66,14 @@ app:
     periodSeconds: 30
     timeoutSeconds: 5
     failureThreshold: 3
+  # null uses the generated probe; false disables it; an object overrides it.
+  # Timing-only overrides keep the generated check. A handler replaces that check.
+  # All probes are omitted when healthCheck.enabled is false.
+  startupProbe: null
+  readinessProbe: null
+  livenessProbe: null
+  # Omit to use Kubernetes' default progress deadline (600 seconds).
+  progressDeadlineSeconds: null
   rollingUpdate:
     maxUnavailable: 0
     maxSurge: 1
