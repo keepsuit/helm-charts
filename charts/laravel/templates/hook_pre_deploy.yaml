@@ -12,7 +12,7 @@ metadata:
   labels:
     {{- include "laravel.componentLabels" (dict "root" . "component" "pre-deploy") | nindent 4 }}
   annotations:
-    "helm.sh/hook": "pre-install,pre-upgrade"
+    "helm.sh/hook": "post-install,pre-upgrade"
     "helm.sh/hook-delete-policy": before-hook-creation
 spec:
   template:

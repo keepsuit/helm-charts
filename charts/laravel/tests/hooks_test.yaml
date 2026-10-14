@@ -25,7 +25,7 @@ tests:
   asserts:
   - equal:
       path: metadata.annotations["helm.sh/hook"]
-      value: pre-install,pre-upgrade
+      value: post-install,pre-upgrade
     template: hook_pre_deploy.yaml
   - equal:
       path: metadata.annotations["helm.sh/hook-delete-policy"]

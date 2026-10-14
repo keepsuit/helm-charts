@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.15
+
+### Fixes
+
+- `hooks.preDeploy` no longer blocks the first install: the Job referenced the release service
+  account before Helm created it. It now runs post-install on the first install and pre-upgrade
+  afterwards.
+
 ## 0.7.14
 
 ### Features

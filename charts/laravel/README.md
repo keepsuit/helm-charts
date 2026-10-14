@@ -310,8 +310,10 @@ Routes can target the app or reverb Service.
 
 ### Pre-deploy hooks
 
-To run checks before Helm installs or upgrades the application, enable the pre-deploy hook.
-Helm waits for the Job to complete; a failed command fails the Helm operation:
+To run checks before Helm upgrades the application, enable the pre-deploy hook.
+Helm waits for the Job to complete; a failed command fails the Helm operation.
+On the first install the Job runs after the release resources are created, because it needs the
+release service account; the application can start before the commands complete:
 
 ~~~yaml
 hooks:
