@@ -131,18 +131,6 @@ entries:
     urls:
     - https://github.com/twentyweb/helm-charts/releases/download/laravel-0.7.4/laravel-0.7.4.tgz
     version: 0.7.4
-  node:
-  - apiVersion: v2
-    created: "2026-10-22T12:41:40.483894988Z"
-    description: A Helm chart for deploying stateless HTTP apps (Node, Bun, Deno,
-      Go, Python)
-    digest: e410a05e1d1fe59268c29d51e31a93df1f39e2c261f0224cb34ec1813b8b7803
-    kubeVersion: '>=1.30.0-0'
-    name: node
-    type: application
-    urls:
-    - https://github.com/keepsuit/helm-charts/releases/download/node-0.1.0/node-0.1.0.tgz
-    version: 0.1.0
   web:
   - apiVersion: v2
     created: "2026-10-22T12:50:39.364696619Z"
