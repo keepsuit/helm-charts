@@ -1,0 +1,45 @@
+{{- $root := . -}}
+{{- range .Values.cronJobs }}
+{{- $cron := . -}}
+{{- if dig "enabled" true $cron }}
+{{- include "node.validateName" (dict "kind" "cronJob" "name" $cron.name) }}
+{{- $component := printf "cron-%s" $cron.name }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "node.componentName" (dict "root" $root "name" $component) }}
+  labels:
+    {{- include "node.componentLabels" (dict "root" $root "component" $component) | nindent 4 }}
+spec:
+  schedule: {{ required (printf "cronJobs[%s].schedule is required" $cron.name) $cron.schedule | quote }}
+  {{- with $cron.timeZone }}
+  timeZone: {{ . | quote }}
+  {{- end }}
+  concurrencyPolicy: {{ default "Forbid" $cron.concurrencyPolicy }}
+  {{- range $key := list "successfulJobsHistoryLimit" "failedJobsHistoryLimit" }}
+  {{- if not (kindIs "invalid" (index $cron $key)) }}
+  {{ $key }}: {{ index $cron $key }}
+  {{- end }}
+  {{- end }}
+  jobTemplate:
+    spec:
+      {{- range $key := list "backoffLimit" "activeDeadlineSeconds" }}
+      {{- if not (kindIs "invalid" (index $cron $key)) }}
+      {{ $key }}: {{ index $cron $key }}
+      {{- end }}
+      {{- end }}
+      template:
+        metadata:
+          {{- include "node.podMetadata" (dict "root" $root "workload" $cron "component" $component) | trim | nindent 10 }}
+        spec:
+          restartPolicy: Never
+          {{- include "node.podSpecCommon" (dict "root" $root "workload" $cron "component" $component) | trim | nindent 10 }}
+          containers:
+            - name: cron
+              {{- include "node.containerCommon" (dict "root" $root "workload" $cron "role" "cron") | trim | nindent 14 }}
+            {{- with $cron.extraContainers }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+{{- end }}
+{{- end }}

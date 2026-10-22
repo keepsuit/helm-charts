@@ -1,0 +1,98 @@
+---
+suite: CronJobs
+templates:
+- cronjob.yaml
+release:
+  name: verify
+  namespace: test
+set:
+  global.image.repository: example/app
+  global.image.tag: test
+tests:
+- it: renders a CronJob with defaults
+  set:
+    cronJobs:
+    - name: nightly
+      schedule: "0 3 * * *"
+      command: [node, scripts/cleanup.mjs]
+  asserts:
+  - equal:
+      path: metadata.name
+      value: verify-node-cron-nightly
+  - equal:
+      path: spec.schedule
+      value: "0 3 * * *"
+  - equal:
+      path: spec.concurrencyPolicy
+      value: Forbid
+  - notExists:
+      path: spec.timeZone
+  - notExists:
+      path: spec.successfulJobsHistoryLimit
+  - notExists:
+      path: spec.jobTemplate.spec.backoffLimit
+  - equal:
+      path: spec.jobTemplate.spec.template.spec.restartPolicy
+      value: Never
+  - equal:
+      path: spec.jobTemplate.spec.template.spec.containers[0].command
+      value: [node, scripts/cleanup.mjs]
+  - equal:
+      path: spec.jobTemplate.spec.template.spec.containers[0].env[1]
+      value:
+        name: CONTAINER_ROLE
+        value: cron
+  - notExists:
+      path: spec.jobTemplate.spec.template.spec.topologySpreadConstraints
+- it: sets schedule options and job limits
+  set:
+    cronJobs:
+    - name: nightly
+      schedule: "0 3 * * *"
+      timeZone: Europe/Rome
+      concurrencyPolicy: Replace
+      successfulJobsHistoryLimit: 0
+      failedJobsHistoryLimit: 2
+      backoffLimit: 0
+      activeDeadlineSeconds: 600
+      resources:
+        limits:
+          memory: 256Mi
+  asserts:
+  - equal:
+      path: spec.timeZone
+      value: Europe/Rome
+  - equal:
+      path: spec.concurrencyPolicy
+      value: Replace
+  - equal:
+      path: spec.successfulJobsHistoryLimit
+      value: 0
+  - equal:
+      path: spec.failedJobsHistoryLimit
+      value: 2
+  - equal:
+      path: spec.jobTemplate.spec.backoffLimit
+      value: 0
+  - equal:
+      path: spec.jobTemplate.spec.activeDeadlineSeconds
+      value: 600
+  - equal:
+      path: spec.jobTemplate.spec.template.spec.containers[0].resources.limits.memory
+      value: 256Mi
+- it: skips disabled CronJobs
+  set:
+    cronJobs:
+    - name: nightly
+      schedule: "0 3 * * *"
+      enabled: false
+  asserts:
+  - hasDocuments:
+      count: 0
+- it: requires a schedule
+  set:
+    cronJobs:
+    - name: nightly
+  asserts:
+  - failedTemplate:
+      errorPattern: values don.t meet the specifications of the schema

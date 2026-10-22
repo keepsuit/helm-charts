@@ -1,0 +1,66 @@
+---
+suite: Application port and environment
+templates:
+- app_deployment.yaml
+set:
+  global.image.repository: example/app
+  global.image.tag: test
+tests:
+- it: sets containerPort and PORT from app.port
+  set:
+    app.port: 8080
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].ports
+      value:
+      - name: http
+        containerPort: 8080
+        protocol: TCP
+  - equal:
+      path: spec.template.spec.containers[0].env
+      value:
+      - name: APP_VERSION
+        value: test
+      - name: CONTAINER_ROLE
+        value: app
+      - name: PORT
+        value: "8080"
+- it: sets HOST when app.host is set
+  set:
+    app.host: 0.0.0.0
+  asserts:
+  - contains:
+      path: spec.template.spec.containers[0].env
+      content:
+        name: HOST
+        value: 0.0.0.0
+- it: keeps a user-defined PORT and HOST
+  set:
+    app.host: 0.0.0.0
+    global.env:
+    - name: PORT
+      value: "4000"
+    app.env:
+    - name: HOST
+      value: "::"
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].env
+      value:
+      - name: APP_VERSION
+        value: test
+      - name: CONTAINER_ROLE
+        value: app
+      - name: PORT
+        value: "4000"
+      - name: HOST
+        value: "::"
+- it: uses global.appVersion as APP_VERSION
+  set:
+    global.appVersion: v1.2.3
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].env[0]
+      value:
+        name: APP_VERSION
+        value: v1.2.3

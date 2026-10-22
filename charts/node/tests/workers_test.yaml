@@ -1,0 +1,199 @@
+---
+suite: Workers
+templates:
+- worker_deployment.yaml
+- worker_hpa.yaml
+- worker_pdb.yaml
+release:
+  name: verify
+  namespace: test
+set:
+  global.image.repository: example/app
+  global.image.tag: test
+tests:
+- it: renders a worker with its own command and no probes
+  set:
+    workers:
+    - name: jobs
+      command: [node, worker.mjs]
+      args: [--queue=default]
+      env:
+      - name: QUEUE
+        value: default
+      resources:
+        limits:
+          memory: 256Mi
+  asserts:
+  - equal:
+      path: metadata.name
+      value: verify-node-worker-jobs
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.replicas
+      value: 1
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.selector.matchLabels
+      value:
+        app.kubernetes.io/name: node
+        app.kubernetes.io/instance: verify
+        app.kubernetes.io/component: worker-jobs
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].command
+      value: [node, worker.mjs]
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].args
+      value: [--queue=default]
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].env
+      value:
+      - name: APP_VERSION
+        value: test
+      - name: CONTAINER_ROLE
+        value: worker
+      - name: QUEUE
+        value: default
+    template: worker_deployment.yaml
+  - notExists:
+      path: spec.template.spec.containers[0].ports
+    template: worker_deployment.yaml
+  - notExists:
+      path: spec.template.spec.containers[0].livenessProbe
+    template: worker_deployment.yaml
+  - notExists:
+      path: spec.template.spec.containers[0].lifecycle
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.template.spec.topologySpreadConstraints[0].labelSelector.matchLabels["app.kubernetes.io/component"]
+      value: worker-jobs
+    template: worker_deployment.yaml
+  - hasDocuments:
+      count: 0
+    template: worker_hpa.yaml
+  - hasDocuments:
+      count: 0
+    template: worker_pdb.yaml
+- it: passes probes, lifecycle and grace period through
+  set:
+    workers:
+    - name: jobs
+      livenessProbe:
+        exec:
+          command: [cat, /tmp/alive]
+      readinessProbe:
+        tcpSocket:
+          port: 9000
+      terminationGracePeriodSeconds: 120
+      lifecycle:
+        preStop:
+          exec:
+            command: [node, drain.mjs]
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].livenessProbe
+      value:
+        exec:
+          command: [cat, /tmp/alive]
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].readinessProbe
+      value:
+        tcpSocket:
+          port: 9000
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.template.spec.terminationGracePeriodSeconds
+      value: 120
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].lifecycle.preStop.exec.command
+      value: [node, drain.mjs]
+    template: worker_deployment.yaml
+- it: renders a PDB above one replica
+  set:
+    workers:
+    - name: jobs
+      replicas: 3
+      minAvailable: 2
+  asserts:
+  - equal:
+      path: spec.minAvailable
+      value: 2
+    template: worker_pdb.yaml
+  - equal:
+      path: spec.selector.matchLabels["app.kubernetes.io/component"]
+      value: worker-jobs
+    template: worker_pdb.yaml
+- it: renders an HPA with worker defaults
+  set:
+    workers:
+    - name: jobs
+      autoscaling:
+        enabled: true
+        minReplicas: 2
+  asserts:
+  - notExists:
+      path: spec.replicas
+    template: worker_deployment.yaml
+  - equal:
+      path: spec.scaleTargetRef.name
+      value: verify-node-worker-jobs
+    template: worker_hpa.yaml
+  - equal:
+      path: spec.minReplicas
+      value: 2
+    template: worker_hpa.yaml
+  - equal:
+      path: spec.maxReplicas
+      value: 5
+    template: worker_hpa.yaml
+  - equal:
+      path: spec.metrics[0].resource.target.averageUtilization
+      value: 80
+    template: worker_hpa.yaml
+  - hasDocuments:
+      count: 1
+    template: worker_pdb.yaml
+- it: renders one document per enabled worker
+  set:
+    workers:
+    - name: first
+    - name: second
+      replicas: 2
+    - name: skipped
+      enabled: false
+      replicas: 2
+  asserts:
+  - hasDocuments:
+      count: 2
+    template: worker_deployment.yaml
+  - hasDocuments:
+      count: 1
+    template: worker_pdb.yaml
+- it: sets NODE_OPTIONS per worker
+  set:
+    workers:
+    - name: jobs
+      node:
+        maxOldSpaceFromLimit: true
+      resources:
+        limits:
+          memory: 256Mi
+  asserts:
+  - contains:
+      path: spec.template.spec.containers[0].env
+      content:
+        name: NODE_OPTIONS
+        value: --max-old-space-size=192
+    template: worker_deployment.yaml
+- it: rejects invalid worker names
+  set:
+    workers:
+    - name: Bad_Name
+  asserts:
+  - failedTemplate:
+      errorPattern: values don.t meet the specifications of the schema
+    template: worker_deployment.yaml

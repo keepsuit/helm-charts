@@ -1,0 +1,130 @@
+---
+suite: Deployment hooks
+templates:
+- hook_pre_deploy.yaml
+- hook_post_deploy.yaml
+release:
+  name: verify
+  namespace: test
+set:
+  global.image.repository: example/app
+  global.image.tag: test
+tests:
+- it: omits hooks by default
+  asserts:
+  - hasDocuments:
+      count: 0
+    template: hook_pre_deploy.yaml
+  - hasDocuments:
+      count: 0
+    template: hook_post_deploy.yaml
+- it: runs preDeploy commands in order with the correct hook phase
+  set:
+    hooks.preDeploy.enabled: true
+    hooks.preDeploy.commands:
+    - node first.mjs
+    - node second.mjs
+    hooks.preDeploy.env:
+    - name: STEP
+      value: migrate
+    hooks.preDeploy.backoffLimit: 0
+    hooks.preDeploy.activeDeadlineSeconds: 300
+    hooks.preDeploy.ttlSecondsAfterFinished: 600
+  asserts:
+  - equal:
+      path: metadata.annotations["helm.sh/hook"]
+      value: post-install,pre-upgrade
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: metadata.annotations["helm.sh/hook-delete-policy"]
+      value: before-hook-creation
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: metadata.annotations["helm.sh/hook-weight"]
+      value: "-1"
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: spec.template.spec.containers[0].command
+      value:
+      - sh
+      - "-c"
+      - node first.mjs && node second.mjs
+    template: hook_pre_deploy.yaml
+  - notExists:
+      path: spec.template.spec.containers[0].args
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: spec.template.spec.containers[0].env
+      value:
+      - name: APP_VERSION
+        value: test
+      - name: CONTAINER_ROLE
+        value: pre-deploy
+      - name: STEP
+        value: migrate
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: spec.backoffLimit
+      value: 0
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: spec.activeDeadlineSeconds
+      value: 300
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: spec.ttlSecondsAfterFinished
+      value: 600
+    template: hook_pre_deploy.yaml
+  - equal:
+      path: spec.template.spec.restartPolicy
+      value: Never
+    template: hook_pre_deploy.yaml
+- it: runs postDeploy commands after install and upgrade
+  set:
+    hooks.postDeploy.enabled: true
+    hooks.postDeploy.commands:
+    - node warmup.mjs
+    hooks.postDeploy.resources:
+      limits:
+        memory: 256Mi
+  asserts:
+  - equal:
+      path: metadata.annotations["helm.sh/hook"]
+      value: post-install,post-upgrade
+    template: hook_post_deploy.yaml
+  - equal:
+      path: metadata.name
+      value: verify-node-post-deploy
+    template: hook_post_deploy.yaml
+  - notExists:
+      path: metadata.annotations["helm.sh/hook-weight"]
+    template: hook_post_deploy.yaml
+  - equal:
+      path: spec.template.spec.containers[0].command
+      value: [sh, "-c", node warmup.mjs]
+    template: hook_post_deploy.yaml
+  - equal:
+      path: spec.template.spec.containers[0].env[1].value
+      value: post-deploy
+    template: hook_post_deploy.yaml
+  - equal:
+      path: spec.template.spec.containers[0].resources.limits.memory
+      value: 256Mi
+    template: hook_post_deploy.yaml
+  - notExists:
+      path: spec.backoffLimit
+    template: hook_post_deploy.yaml
+- it: rejects an enabled pre-deploy hook without commands
+  set:
+    hooks.preDeploy.enabled: true
+  asserts:
+  - failedTemplate:
+      errorPattern: hooks.preDeploy.commands must contain at least one command
+    template: hook_pre_deploy.yaml
+- it: rejects an enabled post-deploy hook without commands
+  set:
+    hooks.postDeploy.enabled: true
+  asserts:
+  - failedTemplate:
+      errorPattern: hooks.postDeploy.commands must contain at least one command
+    template: hook_post_deploy.yaml

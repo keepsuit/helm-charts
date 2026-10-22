@@ -1,0 +1,1171 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "global": {
+      "type": "object",
+      "required": [
+        "image"
+      ],
+      "properties": {
+        "image": {
+          "type": "object",
+          "required": [
+            "repository"
+          ],
+          "properties": {
+            "repository": {
+              "type": "string"
+            },
+            "tag": {
+              "type": "string"
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^$|^[a-z0-9]+:[a-f0-9]{32,}$"
+            },
+            "pullPolicy": {
+              "enum": [
+                "Always",
+                "IfNotPresent",
+                "Never"
+              ]
+            }
+          }
+        },
+        "appVersion": {
+          "type": "string"
+        },
+        "imagePullSecrets": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "env": {
+          "$ref": "#/definitions/env"
+        },
+        "envFrom": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "secretVolumes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "items"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "mountPath": {
+                "type": "string"
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "podAnnotations": {
+          "type": "object"
+        },
+        "podLabels": {
+          "type": "object"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "securityContext": {
+          "type": "object",
+          "properties": {
+            "readOnlyRootFilesystem": {
+              "type": "boolean"
+            }
+          }
+        },
+        "writablePaths": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^/"
+          }
+        },
+        "extraVolumes": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "extraVolumeMounts": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "nodeSelector": {
+          "type": "object"
+        },
+        "tolerations": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "affinity": {
+          "type": "object"
+        },
+        "topologySpreadConstraints": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "priorityClassName": {
+          "type": "string"
+        },
+        "dnsConfig": {
+          "type": "object"
+        },
+        "revisionHistoryLimit": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "metrics": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "port": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            },
+            "path": {
+              "type": "string",
+              "pattern": "^/"
+            },
+            "serviceMonitor": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "interval": {
+                  "type": "string"
+                },
+                "labels": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "serviceAccount": {
+      "type": "object",
+      "properties": {
+        "create": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "annotations": {
+          "type": "object"
+        },
+        "automountServiceAccountToken": {
+          "type": "boolean"
+        }
+      }
+    },
+    "app": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "command": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "env": {
+          "$ref": "#/definitions/env"
+        },
+        "envFrom": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "resources": {
+          "type": "object"
+        },
+        "podAnnotations": {
+          "type": "object"
+        },
+        "podLabels": {
+          "type": "object"
+        },
+        "nodeSelector": {
+          "type": "object"
+        },
+        "tolerations": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "affinity": {
+          "type": "object"
+        },
+        "priorityClassName": {
+          "type": "string"
+        },
+        "dnsConfig": {
+          "type": "object"
+        },
+        "extraVolumes": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "extraVolumeMounts": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "initContainers": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "extraContainers": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "node": {
+          "type": "object",
+          "properties": {
+            "maxOldSpaceFromLimit": {
+              "type": "boolean"
+            }
+          }
+        },
+        "replicas": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minAvailable": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "string",
+              "pattern": "^[0-9]+%$"
+            }
+          ]
+        },
+        "topologySpreadConstraints": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            }
+          ]
+        },
+        "terminationGracePeriodSeconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lifecycle": {
+          "type": "object"
+        },
+        "autoscaling": {
+          "$ref": "#/definitions/autoscaling"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "host": {
+          "type": "string"
+        },
+        "service": {
+          "$ref": "#/definitions/service"
+        },
+        "healthCheck": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "type": {
+              "enum": [
+                "http",
+                "tcp"
+              ]
+            },
+            "path": {
+              "type": "string",
+              "pattern": "^/"
+            },
+            "port": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/probePort"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "initialDelaySeconds": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "periodSeconds": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "timeoutSeconds": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "failureThreshold": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "startupProbe": {
+          "$ref": "#/definitions/singleSuccessProbeOverride"
+        },
+        "readinessProbe": {
+          "$ref": "#/definitions/probeOverride"
+        },
+        "livenessProbe": {
+          "$ref": "#/definitions/singleSuccessProbeOverride"
+        },
+        "progressDeadlineSeconds": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rollingUpdate": {
+          "type": "object"
+        },
+        "preStopSleepSeconds": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "workers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "command": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "args": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "env": {
+            "$ref": "#/definitions/env"
+          },
+          "envFrom": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "resources": {
+            "type": "object"
+          },
+          "podAnnotations": {
+            "type": "object"
+          },
+          "podLabels": {
+            "type": "object"
+          },
+          "nodeSelector": {
+            "type": "object"
+          },
+          "tolerations": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "affinity": {
+            "type": "object"
+          },
+          "priorityClassName": {
+            "type": "string"
+          },
+          "dnsConfig": {
+            "type": "object"
+          },
+          "extraVolumes": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "extraVolumeMounts": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "initContainers": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "extraContainers": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "node": {
+            "type": "object",
+            "properties": {
+              "maxOldSpaceFromLimit": {
+                "type": "boolean"
+              }
+            }
+          },
+          "replicas": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minAvailable": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1
+              },
+              {
+                "type": "string",
+                "pattern": "^[0-9]+%$"
+              }
+            ]
+          },
+          "topologySpreadConstraints": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            ]
+          },
+          "terminationGracePeriodSeconds": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "lifecycle": {
+            "type": "object"
+          },
+          "autoscaling": {
+            "$ref": "#/definitions/autoscaling"
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+          },
+          "startupProbe": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/definitions/probe"
+              }
+            ]
+          },
+          "readinessProbe": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/definitions/probe"
+              }
+            ]
+          },
+          "livenessProbe": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/definitions/probe"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "cronJobs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "schedule"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "command": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "args": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "env": {
+            "$ref": "#/definitions/env"
+          },
+          "envFrom": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "resources": {
+            "type": "object"
+          },
+          "podAnnotations": {
+            "type": "object"
+          },
+          "podLabels": {
+            "type": "object"
+          },
+          "nodeSelector": {
+            "type": "object"
+          },
+          "tolerations": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "affinity": {
+            "type": "object"
+          },
+          "priorityClassName": {
+            "type": "string"
+          },
+          "dnsConfig": {
+            "type": "object"
+          },
+          "extraVolumes": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "extraVolumeMounts": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "initContainers": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "extraContainers": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "node": {
+            "type": "object",
+            "properties": {
+              "maxOldSpaceFromLimit": {
+                "type": "boolean"
+              }
+            }
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+          },
+          "schedule": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "concurrencyPolicy": {
+            "enum": [
+              "Allow",
+              "Forbid",
+              "Replace"
+            ]
+          },
+          "successfulJobsHistoryLimit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "failedJobsHistoryLimit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "backoffLimit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "activeDeadlineSeconds": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "routing": {
+      "type": "object",
+      "properties": {
+        "ingress": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "className": {
+              "type": "string"
+            },
+            "routes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "service",
+                  "host",
+                  "paths"
+                ],
+                "properties": {
+                  "service": {
+                    "type": "string",
+                    "enum": [
+                      "app"
+                    ]
+                  },
+                  "host": {
+                    "type": "string"
+                  },
+                  "paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "path": {
+                          "type": "string"
+                        },
+                        "pathType": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "tls": {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "hosts"
+                    ],
+                    "properties": {
+                      "hosts": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "secretName": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "annotations": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "hooks": {
+      "type": "object",
+      "properties": {
+        "preDeploy": {
+          "$ref": "#/definitions/hook"
+        },
+        "postDeploy": {
+          "$ref": "#/definitions/hook"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "singleSuccessProbeOverride": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/probeOverride"
+        },
+        {
+          "properties": {
+            "successThreshold": {
+              "const": 1
+            }
+          }
+        }
+      ]
+    },
+    "probeOverride": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "const": false
+        },
+        {
+          "$ref": "#/definitions/probe"
+        }
+      ]
+    },
+    "probePort": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        {
+          "type": "string",
+          "minLength": 1
+        }
+      ]
+    },
+    "probe": {
+      "type": "object",
+      "properties": {
+        "initialDelaySeconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "periodSeconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "timeoutSeconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "failureThreshold": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "successThreshold": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "terminationGracePeriodSeconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "exec": {
+          "type": "object",
+          "required": [
+            "command"
+          ],
+          "properties": {
+            "command": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "httpGet": {
+          "type": "object",
+          "required": [
+            "port"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "port": {
+              "$ref": "#/definitions/probePort"
+            },
+            "host": {
+              "type": "string"
+            },
+            "scheme": {
+              "enum": [
+                "HTTP",
+                "HTTPS"
+              ]
+            },
+            "httpHeaders": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "value"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tcpSocket": {
+          "type": "object",
+          "required": [
+            "port"
+          ],
+          "properties": {
+            "port": {
+              "$ref": "#/definitions/probePort"
+            },
+            "host": {
+              "type": "string"
+            }
+          }
+        },
+        "grpc": {
+          "type": "object",
+          "required": [
+            "port"
+          ],
+          "properties": {
+            "port": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            },
+            "service": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "exec",
+              "httpGet"
+            ]
+          }
+        },
+        {
+          "not": {
+            "required": [
+              "exec",
+              "tcpSocket"
+            ]
+          }
+        },
+        {
+          "not": {
+            "required": [
+              "exec",
+              "grpc"
+            ]
+          }
+        },
+        {
+          "not": {
+            "required": [
+              "httpGet",
+              "tcpSocket"
+            ]
+          }
+        },
+        {
+          "not": {
+            "required": [
+              "httpGet",
+              "grpc"
+            ]
+          }
+        },
+        {
+          "not": {
+            "required": [
+              "tcpSocket",
+              "grpc"
+            ]
+          }
+        }
+      ]
+    },
+    "service": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "string"
+        },
+        "port": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "env": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value": {
+            "type": "string"
+          },
+          "valueFrom": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "autoscaling": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "minReplicas": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maxReplicas": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "targetCPUUtilizationPercentage": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "targetMemoryUtilizationPercentage": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "behavior": {
+          "type": "object"
+        }
+      }
+    },
+    "hook": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "commands": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "env": {
+          "$ref": "#/definitions/env"
+        },
+        "envFrom": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "resources": {
+          "type": "object"
+        },
+        "backoffLimit": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "activeDeadlineSeconds": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ttlSecondsAfterFinished": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

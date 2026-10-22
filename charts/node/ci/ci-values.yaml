@@ -1,0 +1,4 @@
+global:
+  image:
+    repository: example/app
+    tag: ci

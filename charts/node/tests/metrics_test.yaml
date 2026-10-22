@@ -1,0 +1,74 @@
+---
+suite: Metrics
+templates:
+- app_deployment.yaml
+- metrics_service.yaml
+- servicemonitor.yaml
+release:
+  name: verify
+  namespace: test
+set:
+  global.image.repository: example/app
+  global.image.tag: test
+tests:
+- it: is off by default
+  asserts:
+  - hasDocuments:
+      count: 0
+    template: metrics_service.yaml
+  - hasDocuments:
+      count: 0
+    template: servicemonitor.yaml
+  - lengthEqual:
+      path: spec.template.spec.containers[0].ports
+      count: 1
+    template: app_deployment.yaml
+- it: adds the metrics port and Service
+  set:
+    global.metrics.enabled: true
+    global.metrics.port: 9464
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].ports[1]
+      value:
+        name: metrics
+        containerPort: 9464
+        protocol: TCP
+    template: app_deployment.yaml
+  - equal:
+      path: spec.ports
+      value:
+      - port: 9464
+        targetPort: metrics
+        protocol: TCP
+        name: metrics
+    template: metrics_service.yaml
+  - equal:
+      path: spec.selector["app.kubernetes.io/component"]
+      value: app
+    template: metrics_service.yaml
+  - hasDocuments:
+      count: 0
+    template: servicemonitor.yaml
+- it: renders a ServiceMonitor for the metrics Service
+  set:
+    global.metrics.enabled: true
+    global.metrics.serviceMonitor.enabled: true
+    global.metrics.serviceMonitor.labels:
+      release: prometheus
+  asserts:
+  - equal:
+      path: metadata.labels.release
+      value: prometheus
+    template: servicemonitor.yaml
+  - equal:
+      path: spec.selector.matchLabels["app.kubernetes.io/component"]
+      value: metrics
+    template: servicemonitor.yaml
+  - equal:
+      path: spec.endpoints
+      value:
+      - port: metrics
+        path: /metrics
+        interval: 30s
+    template: servicemonitor.yaml

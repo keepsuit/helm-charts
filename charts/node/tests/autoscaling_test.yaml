@@ -1,0 +1,99 @@
+---
+suite: Application autoscaling and disruption budget
+templates:
+- app_deployment.yaml
+- app_hpa.yaml
+- app_pdb.yaml
+release:
+  name: verify
+  namespace: test
+set:
+  global.image.repository: example/app
+  global.image.tag: test
+tests:
+- it: renders a PDB above one replica
+  set:
+    app.replicas: 2
+  asserts:
+  - equal:
+      path: spec
+      value:
+        minAvailable: 1
+        selector:
+          matchLabels:
+            app.kubernetes.io/name: node
+            app.kubernetes.io/instance: verify
+            app.kubernetes.io/component: app
+    template: app_pdb.yaml
+- it: renders an HPA with CPU, memory and behavior
+  set:
+    app.autoscaling.enabled: true
+    app.autoscaling.minReplicas: 2
+    app.autoscaling.maxReplicas: 6
+    app.autoscaling.targetMemoryUtilizationPercentage: 75
+    app.autoscaling.behavior:
+      scaleDown:
+        stabilizationWindowSeconds: 300
+  asserts:
+  - notExists:
+      path: spec.replicas
+    template: app_deployment.yaml
+  - equal:
+      path: spec
+      value:
+        scaleTargetRef:
+          apiVersion: apps/v1
+          kind: Deployment
+          name: verify-node-app
+        minReplicas: 2
+        maxReplicas: 6
+        metrics:
+        - type: Resource
+          resource:
+            name: cpu
+            target:
+              type: Utilization
+              averageUtilization: 60
+        - type: Resource
+          resource:
+            name: memory
+            target:
+              type: Utilization
+              averageUtilization: 75
+        behavior:
+          scaleDown:
+            stabilizationWindowSeconds: 300
+    template: app_hpa.yaml
+  - hasDocuments:
+      count: 1
+    template: app_pdb.yaml
+- it: renders a memory-only HPA
+  set:
+    app.autoscaling.enabled: true
+    app.autoscaling.targetCPUUtilizationPercentage: null
+    app.autoscaling.targetMemoryUtilizationPercentage: 80
+  asserts:
+  - equal:
+      path: spec.metrics[0].resource.name
+      value: memory
+    template: app_hpa.yaml
+  - lengthEqual:
+      path: spec.metrics
+      count: 1
+    template: app_hpa.yaml
+- it: rejects an HPA without targets
+  set:
+    app.autoscaling.enabled: true
+    app.autoscaling.targetCPUUtilizationPercentage: null
+  asserts:
+  - failedTemplate:
+      errorPattern: needs targetCPUUtilizationPercentage or targetMemoryUtilizationPercentage
+    template: app_hpa.yaml
+- it: omits the PDB when the HPA minimum is one even with more replicas
+  set:
+    app.replicas: 3
+    app.autoscaling.enabled: true
+  asserts:
+  - hasDocuments:
+      count: 0
+    template: app_pdb.yaml

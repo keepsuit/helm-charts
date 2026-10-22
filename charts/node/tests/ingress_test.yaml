@@ -1,0 +1,129 @@
+---
+suite: Ingress routing and TLS
+templates:
+- ingress.yaml
+release:
+  name: verify
+  namespace: test
+set:
+  global.image.repository: example/app
+  global.image.tag: test
+tests:
+- it: omits ingress by default
+  set: {}
+  asserts:
+  - hasDocuments:
+      count: 0
+- it: routes every host to the app service port
+  set:
+    routing.ingress.enabled: true
+    routing.ingress.className: nginx
+    routing.ingress.annotations:
+      cert-manager.io/cluster-issuer: letsencrypt
+    routing.ingress.routes:
+    - service: app
+      host: app.example.com
+      paths:
+      - path: "/"
+        pathType: Prefix
+    - service: app
+      host: www.example.com
+      paths:
+      - path: "/api"
+        pathType: Exact
+    app.service.port: 80
+  asserts:
+  - equal:
+      path: spec.ingressClassName
+      value: nginx
+  - equal:
+      path: metadata.annotations
+      value:
+        cert-manager.io/cluster-issuer: letsencrypt
+  - equal:
+      path: spec.rules[0].http.paths[0].backend.service
+      value:
+        name: verify-node-app
+        port:
+          number: 80
+  - equal:
+      path: spec.rules[1]
+      value:
+        host: www.example.com
+        http:
+          paths:
+          - path: "/api"
+            pathType: Exact
+            backend:
+              service:
+                name: verify-node-app
+                port:
+                  number: 80
+- it: uses default path and application port
+  set:
+    routing.ingress.enabled: true
+    routing.ingress.routes:
+    - service: app
+      host: app.example.com
+      paths:
+      - {}
+  asserts:
+  - equal:
+      path: spec.rules[0].http.paths[0]
+      value:
+        path: "/"
+        pathType: Prefix
+        backend:
+          service:
+            name: verify-node-app
+            port:
+              number: 3000
+- it: accepts TLS hosts
+  set:
+    routing.ingress.enabled: true
+    routing.ingress.tls:
+    - app.example.com
+  asserts:
+  - equal:
+      path: spec.tls
+      value:
+      - hosts:
+        - app.example.com
+        secretName: verify-node-tls
+- it: accepts TLS objects
+  set:
+    routing.ingress.enabled: true
+    routing.ingress.tls:
+    - hosts:
+      - app.example.com
+      secretName: custom-tls
+  asserts:
+  - equal:
+      path: spec.tls
+      value:
+      - hosts:
+        - app.example.com
+        secretName: custom-tls
+- it: rejects routes to disabled app
+  set:
+    routing.ingress.enabled: true
+    app.enabled: false
+    routing.ingress.routes:
+    - service: app
+      host: example.com
+      paths:
+      - path: "/"
+  asserts:
+  - failedTemplate:
+      errorPattern: references app but app.enabled=false
+- it: rejects unsupported ingress backends
+  set:
+    routing.ingress.enabled: true
+    routing.ingress.routes:
+    - service: worker
+      host: example.com
+      paths:
+      - path: "/"
+  asserts:
+  - failedTemplate:
+      errorPattern: schema|unsupported service

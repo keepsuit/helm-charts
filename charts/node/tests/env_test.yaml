@@ -1,0 +1,150 @@
+---
+suite: Environment and pod settings
+templates:
+- app_deployment.yaml
+set:
+  global.image.repository: example/app
+  global.image.tag: test
+tests:
+- it: orders chart, global and workload env and supports valueFrom
+  set:
+    global.env:
+    - name: API_URL
+      value: https://api.example.com
+    app.env:
+    - name: SECRET
+      valueFrom:
+        secretKeyRef:
+          name: web
+          key: secret
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].env
+      value:
+      - name: APP_VERSION
+        value: test
+      - name: CONTAINER_ROLE
+        value: app
+      - name: PORT
+        value: "3000"
+      - name: API_URL
+        value: https://api.example.com
+      - name: SECRET
+        valueFrom:
+          secretKeyRef:
+            name: web
+            key: secret
+- it: concatenates global and workload envFrom
+  set:
+    global.envFrom:
+    - secretRef:
+        name: shared
+    app.envFrom:
+    - configMapRef:
+        name: web
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].envFrom
+      value:
+      - secretRef:
+          name: shared
+      - configMapRef:
+          name: web
+- it: rejects chart-owned env names
+  set:
+    app.env:
+    - name: CONTAINER_ROLE
+      value: other
+  asserts:
+  - failedTemplate:
+      errorPattern: env var CONTAINER_ROLE is chart-owned
+- it: rejects APP_VERSION in global env
+  set:
+    global.env:
+    - name: APP_VERSION
+      value: other
+  asserts:
+  - failedTemplate:
+      errorPattern: env var APP_VERSION is chart-owned
+- it: merges pod annotations with the env checksum
+  set:
+    global.podAnnotations:
+      team: web
+  asserts:
+  - equal:
+      path: spec.template.metadata.annotations.team
+      value: web
+  - matchRegex:
+      path: spec.template.metadata.annotations["checksum/env"]
+      pattern: ^[a-f0-9]{64}$
+- it: keeps the empty env checksum stable
+  asserts:
+  - equal:
+      path: spec.template.metadata.annotations["checksum/env"]
+      value: 7ce71ef11990017c8b7c69bf526d3df7e9bc3e91b5e99dbb9afdb7043da281d2
+- it: changes the checksum with envFrom
+  set:
+    app.envFrom:
+    - secretRef:
+        name: web
+  asserts:
+  - notEqual:
+      path: spec.template.metadata.annotations["checksum/env"]
+      value: 7ce71ef11990017c8b7c69bf526d3df7e9bc3e91b5e99dbb9afdb7043da281d2
+- it: applies pod and scheduling settings
+  set:
+    global.imagePullSecrets:
+    - name: ghcr
+    global.podLabels:
+      team: web
+    app.podLabels:
+      tier: front
+    global.priorityClassName: low
+    app.priorityClassName: high
+    app.dnsConfig:
+      options:
+      - name: ndots
+        value: "2"
+    global.nodeSelector:
+      kubernetes.io/arch: arm64
+    app.tolerations:
+    - key: dedicated
+      operator: Exists
+    app.initContainers:
+    - name: wait
+      image: busybox
+    app.extraContainers:
+    - name: proxy
+      image: envoy
+  asserts:
+  - equal:
+      path: spec.template.spec.imagePullSecrets
+      value:
+      - name: ghcr
+  - equal:
+      path: spec.template.metadata.labels.team
+      value: web
+  - equal:
+      path: spec.template.metadata.labels.tier
+      value: front
+  - equal:
+      path: spec.template.spec.priorityClassName
+      value: high
+  - equal:
+      path: spec.template.spec.dnsConfig.options[0].name
+      value: ndots
+  - equal:
+      path: spec.template.spec.nodeSelector
+      value:
+        kubernetes.io/arch: arm64
+  - equal:
+      path: spec.template.spec.tolerations[0].key
+      value: dedicated
+  - equal:
+      path: spec.template.spec.initContainers[0].name
+      value: wait
+  - equal:
+      path: spec.template.spec.containers[1]
+      value:
+        name: proxy
+        image: envoy
