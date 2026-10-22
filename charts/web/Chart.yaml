@@ -1,0 +1,9 @@
+apiVersion: v2
+name: web
+description: A Helm chart for deploying stateless HTTP apps
+
+type: application
+
+version: 0.1.0
+
+kubeVersion: ">=1.30.0-0"

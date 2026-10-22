@@ -1,3 +1,0 @@
-{{- if .Values.app.enabled }}
-{{- include "node.pdb" (dict "root" . "name" (printf "%s-app" (include "node.fullname" .)) "component" "app" "workload" .Values.app) }}
-{{- end }}

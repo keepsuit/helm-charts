@@ -97,7 +97,7 @@ tests:
   - equal:
       path: spec.selector.matchLabels
       value:
-        app.kubernetes.io/name: node
+        app.kubernetes.io/name: web
         app.kubernetes.io/instance: verify
         app.kubernetes.io/component: app
   - equal:
@@ -109,7 +109,7 @@ tests:
         nodeTaintsPolicy: Honor
         labelSelector:
           matchLabels:
-            app.kubernetes.io/name: node
+            app.kubernetes.io/name: web
             app.kubernetes.io/instance: verify
             app.kubernetes.io/component: app
 - it: routes the Service to the http port
@@ -125,7 +125,7 @@ tests:
   - equal:
       path: spec.selector
       value:
-        app.kubernetes.io/name: node
+        app.kubernetes.io/name: web
         app.kubernetes.io/instance: verify
         app.kubernetes.io/component: app
 - it: prefers the image digest over the tag

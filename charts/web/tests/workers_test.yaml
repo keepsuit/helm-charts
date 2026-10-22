@@ -26,7 +26,7 @@ tests:
   asserts:
   - equal:
       path: metadata.name
-      value: verify-node-worker-jobs
+      value: verify-web-worker-jobs
     template: worker_deployment.yaml
   - equal:
       path: spec.replicas
@@ -35,7 +35,7 @@ tests:
   - equal:
       path: spec.selector.matchLabels
       value:
-        app.kubernetes.io/name: node
+        app.kubernetes.io/name: web
         app.kubernetes.io/instance: verify
         app.kubernetes.io/component: worker-jobs
     template: worker_deployment.yaml
@@ -140,7 +140,7 @@ tests:
     template: worker_deployment.yaml
   - equal:
       path: spec.scaleTargetRef.name
-      value: verify-node-worker-jobs
+      value: verify-web-worker-jobs
     template: worker_hpa.yaml
   - equal:
       path: spec.minReplicas

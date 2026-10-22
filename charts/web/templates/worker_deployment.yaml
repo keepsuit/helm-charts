@@ -2,8 +2,8 @@
 {{- range .Values.workers }}
 {{- $worker := . -}}
 {{- if dig "enabled" true $worker }}
-{{- include "node.validateName" (dict "kind" "worker" "name" $worker.name) }}
-{{- $name := include "node.componentName" (dict "root" $root "name" (printf "worker-%s" $worker.name)) }}
+{{- include "web.validateName" (dict "kind" "worker" "name" $worker.name) }}
+{{- $name := include "web.componentName" (dict "root" $root "name" (printf "worker-%s" $worker.name)) }}
 {{- $component := printf "worker-%s" $worker.name }}
 ---
 apiVersion: apps/v1
@@ -11,23 +11,23 @@ kind: Deployment
 metadata:
   name: {{ $name }}
   labels:
-    {{- include "node.componentLabels" (dict "root" $root "component" $component) | nindent 4 }}
+    {{- include "web.componentLabels" (dict "root" $root "component" $component) | nindent 4 }}
 spec:
   {{- if not (dig "autoscaling" "enabled" false $worker) }}
   replicas: {{ default 1 $worker.replicas }}
   {{- end }}
   selector:
     matchLabels:
-      {{- include "node.componentSelectorLabels" (dict "root" $root "component" $component) | nindent 6 }}
+      {{- include "web.componentSelectorLabels" (dict "root" $root "component" $component) | nindent 6 }}
   revisionHistoryLimit: {{ $root.Values.global.revisionHistoryLimit }}
   template:
     metadata:
-      {{- include "node.podMetadata" (dict "root" $root "workload" $worker "component" $component) | trim | nindent 6 }}
+      {{- include "web.podMetadata" (dict "root" $root "workload" $worker "component" $component) | trim | nindent 6 }}
     spec:
-      {{- include "node.podSpecCommon" (dict "root" $root "workload" $worker "component" $component "spread" true) | trim | nindent 6 }}
+      {{- include "web.podSpecCommon" (dict "root" $root "workload" $worker "component" $component "spread" true) | trim | nindent 6 }}
       containers:
         - name: worker
-          {{- include "node.containerCommon" (dict "root" $root "workload" $worker "role" "worker") | trim | nindent 10 }}
+          {{- include "web.containerCommon" (dict "root" $root "workload" $worker "role" "worker") | trim | nindent 10 }}
           {{- range $probe := list "startupProbe" "readinessProbe" "livenessProbe" }}
           {{- with index $worker $probe }}
           {{ $probe }}:

@@ -1,4 +1,4 @@
-{{- define "node.appProbes" -}}
+{{- define "web.appProbes" -}}
 {{- $app := .Values.app -}}
 {{- $health := $app.healthCheck -}}
 {{- $port := default $app.port $health.port -}}

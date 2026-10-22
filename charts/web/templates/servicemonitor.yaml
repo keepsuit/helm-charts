@@ -2,16 +2,16 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: {{ include "node.fullname" . }}-metrics
+  name: {{ include "web.fullname" . }}-metrics
   labels:
-    {{- include "node.componentLabels" (dict "root" . "component" "metrics") | nindent 4 }}
+    {{- include "web.componentLabels" (dict "root" . "component" "metrics") | nindent 4 }}
     {{- with .Values.global.metrics.serviceMonitor.labels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:
   selector:
     matchLabels:
-      {{- include "node.componentSelectorLabels" (dict "root" . "component" "metrics") | nindent 6 }}
+      {{- include "web.componentSelectorLabels" (dict "root" . "component" "metrics") | nindent 6 }}
   endpoints:
     - port: metrics
       path: {{ .Values.global.metrics.path }}

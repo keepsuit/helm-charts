@@ -1,3 +1,0 @@
-{{- if .Values.hooks.postDeploy.enabled -}}
-{{- include "node.hookJob" (dict "root" . "key" "postDeploy" "component" "post-deploy" "phases" "post-install,post-upgrade") }}
-{{- end }}

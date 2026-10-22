@@ -1,5 +1,5 @@
-# regrab web (TanStack Start) on staging, deployed with charts/node.
-#   helm upgrade --install regrab-web ./charts/node -n regrab-staging -f examples/regrab-web-staging.yaml
+# regrab web (TanStack Start) on staging, deployed with charts/web.
+#   helm upgrade --install regrab-web ./charts/web -n regrab-staging -f examples/regrab-web-staging.yaml
 # Values marked [da confermare] are placeholders: replace them before deploying.
 
 fullnameOverride: regrab-web

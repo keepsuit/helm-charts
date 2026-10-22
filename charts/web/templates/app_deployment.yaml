@@ -10,9 +10,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "node.fullname" . }}-app
+  name: {{ include "web.fullname" . }}-app
   labels:
-    {{- include "node.componentLabels" (dict "root" . "component" "app") | nindent 4 }}
+    {{- include "web.componentLabels" (dict "root" . "component" "app") | nindent 4 }}
 spec:
   {{- if not $app.autoscaling.enabled }}
   replicas: {{ $app.replicas }}
@@ -22,7 +22,7 @@ spec:
   {{- end }}
   selector:
     matchLabels:
-      {{- include "node.componentSelectorLabels" (dict "root" . "component" "app") | nindent 6 }}
+      {{- include "web.componentSelectorLabels" (dict "root" . "component" "app") | nindent 6 }}
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -32,12 +32,12 @@ spec:
   revisionHistoryLimit: {{ .Values.global.revisionHistoryLimit }}
   template:
     metadata:
-      {{- include "node.podMetadata" (dict "root" . "workload" $app "component" "app") | trim | nindent 6 }}
+      {{- include "web.podMetadata" (dict "root" . "workload" $app "component" "app") | trim | nindent 6 }}
     spec:
-      {{- include "node.podSpecCommon" (dict "root" . "workload" $app "component" "app" "spread" true) | trim | nindent 6 }}
+      {{- include "web.podSpecCommon" (dict "root" . "workload" $app "component" "app" "spread" true) | trim | nindent 6 }}
       containers:
         - name: app
-          {{- include "node.containerCommon" (dict "root" . "workload" $app "role" "app" "extra" $extraEnv) | trim | nindent 10 }}
+          {{- include "web.containerCommon" (dict "root" . "workload" $app "role" "app" "extra" $extraEnv) | trim | nindent 10 }}
           ports:
             - name: http
               containerPort: {{ int $app.port }}
@@ -48,7 +48,7 @@ spec:
               protocol: TCP
             {{- end }}
           {{- if $app.healthCheck.enabled }}
-          {{- include "node.appProbes" . | trim | nindent 10 }}
+          {{- include "web.appProbes" . | trim | nindent 10 }}
           {{- end }}
           {{- if $app.lifecycle }}
           lifecycle:

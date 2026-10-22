@@ -3,6 +3,6 @@
 {{- if and (dig "enabled" true .) (dig "autoscaling" "enabled" false .) }}
 {{- $autoscaling := mergeOverwrite (dict "minReplicas" 1 "maxReplicas" 5 "targetCPUUtilizationPercentage" 80) .autoscaling }}
 ---
-{{ include "node.hpa" (dict "root" $root "name" (include "node.componentName" (dict "root" $root "name" (printf "worker-%s" .name))) "component" (printf "worker-%s" .name) "autoscaling" $autoscaling "path" (printf "workers[%s]" .name)) }}
+{{ include "web.hpa" (dict "root" $root "name" (include "web.componentName" (dict "root" $root "name" (printf "worker-%s" .name))) "component" (printf "worker-%s" .name) "autoscaling" $autoscaling "path" (printf "workers[%s]" .name)) }}
 {{- end }}
 {{- end }}

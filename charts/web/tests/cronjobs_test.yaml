@@ -18,7 +18,7 @@ tests:
   asserts:
   - equal:
       path: metadata.name
-      value: verify-node-cron-nightly
+      value: verify-web-cron-nightly
   - equal:
       path: spec.schedule
       value: "0 3 * * *"

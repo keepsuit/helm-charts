@@ -1,8 +1,8 @@
-# Node Helm chart
+# Web Helm chart
 
-A Helm chart for deploying stateless HTTP applications: Node servers (TanStack Start,
-Next.js, Nuxt, Astro SSR, Remix, Hono, Express), Bun or Deno servers, and Go or Python HTTP
-services. Only the optional `node.maxOldSpaceFromLimit` helper is Node-specific.
+A Helm chart for deploying stateless HTTP applications. It does not depend on the runtime:
+any image that meets the [image requirements](#image-requirements) works. Only the optional
+`node.maxOldSpaceFromLimit` helper is specific to Node.js.
 
 The values follow the [Laravel chart](../laravel/) layout wherever the concept is the same:
 `global`, `app`, `workers`, `routing.ingress` and `hooks` keep their key names and behaviour.
@@ -53,7 +53,7 @@ app:
 Install the chart:
 
 ~~~
-helm upgrade --install web ./charts/node \
+helm upgrade --install web ./charts/web \
   --namespace web \
   --create-namespace \
   --values values.yaml
@@ -472,9 +472,9 @@ app:
 ## Validation and rendering
 
 ~~~
-helm lint ./charts/node -f values.yaml
-helm template web ./charts/node --namespace web --values values.yaml
-helm unittest --strict ./charts/node
+helm lint ./charts/web -f values.yaml
+helm template web ./charts/web --namespace web --values values.yaml
+helm unittest --strict ./charts/web
 ~~~
 
 ## References

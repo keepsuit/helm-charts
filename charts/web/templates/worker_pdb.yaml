@@ -1,0 +1,10 @@
+{{- $root := . -}}
+{{- range .Values.workers }}
+{{- if dig "enabled" true . }}
+{{- $pdb := include "web.pdb" (dict "root" $root "name" (include "web.componentName" (dict "root" $root "name" (printf "worker-%s" .name))) "component" (printf "worker-%s" .name) "workload" .) }}
+{{- if $pdb }}
+---
+{{- $pdb }}
+{{- end }}
+{{- end }}
+{{- end }}

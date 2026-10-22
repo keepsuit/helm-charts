@@ -3,9 +3,9 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "node.fullname" . }}
+  name: {{ include "web.fullname" . }}
   labels:
-    {{- include "node.labels" . | nindent 4 }}
+    {{- include "web.labels" . | nindent 4 }}
   {{- with .Values.routing.ingress.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -21,7 +21,7 @@ spec:
       {{- range . }}
         - {{ . | quote }}
       {{- end }}
-      secretName: {{ include "node.fullname" $root }}-tls
+      secretName: {{ include "web.fullname" $root }}-tls
     {{- else }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
@@ -42,7 +42,7 @@ spec:
             pathType: {{ .pathType | default "Prefix" | quote }}
             backend:
               service:
-                name: {{ include "node.fullname" $root }}-app
+                name: {{ include "web.fullname" $root }}-app
                 port:
                   number: {{ default $root.Values.app.port $root.Values.app.service.port }}
         {{- end }}

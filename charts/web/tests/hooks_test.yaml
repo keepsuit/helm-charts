@@ -94,7 +94,7 @@ tests:
     template: hook_post_deploy.yaml
   - equal:
       path: metadata.name
-      value: verify-node-post-deploy
+      value: verify-web-post-deploy
     template: hook_post_deploy.yaml
   - notExists:
       path: metadata.annotations["helm.sh/hook-weight"]

@@ -7,7 +7,7 @@ Helm charts for deploying applications and related Kubernetes workloads.
 | Chart | Version | Description |
 | --- | --- | --- |
 | [laravel](charts/laravel/) | 0.7 | Deploys a Laravel application. |
-| [node](charts/node/) | 0.1 | Deploys a stateless HTTP app (Node, Bun, Deno, Go, Python). |
+| [web](charts/web/) | 0.1 | Deploys a stateless HTTP application. |
 
 ## Requirements
 
@@ -74,7 +74,7 @@ Run the charts' YAML manifest regression checks with Helm 4 and
 ~~~sh
 helm plugin install https://github.com/helm-unittest/helm-unittest.git --version v1.2.1 --verify=false
 helm unittest --strict ./charts/laravel
-helm unittest --strict ./charts/node
+helm unittest --strict ./charts/web
 ~~~
 
 Helm 4 requires `--verify=false` for the Git-based plugin installation, as documented by

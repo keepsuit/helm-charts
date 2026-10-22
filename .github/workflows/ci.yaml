@@ -37,10 +37,10 @@ jobs:
       - name: Test laravel chart
         run: helm unittest --strict ./charts/laravel
 
-      - name: Lint node chart
+      - name: Lint web chart
         run: |
-          helm lint ./charts/node --strict -f ./charts/node/ci/ci-values.yaml
-          helm lint ./charts/node --strict -f ./examples/regrab-web-staging.yaml
+          helm lint ./charts/web --strict -f ./charts/web/ci/ci-values.yaml
+          helm lint ./charts/web --strict -f ./examples/regrab-web-staging.yaml
 
-      - name: Test node chart
-        run: helm unittest --strict ./charts/node
+      - name: Test web chart
+        run: helm unittest --strict ./charts/web

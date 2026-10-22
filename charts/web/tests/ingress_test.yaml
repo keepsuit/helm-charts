@@ -43,7 +43,7 @@ tests:
   - equal:
       path: spec.rules[0].http.paths[0].backend.service
       value:
-        name: verify-node-app
+        name: verify-web-app
         port:
           number: 80
   - equal:
@@ -56,7 +56,7 @@ tests:
             pathType: Exact
             backend:
               service:
-                name: verify-node-app
+                name: verify-web-app
                 port:
                   number: 80
 - it: uses default path and application port
@@ -75,7 +75,7 @@ tests:
         pathType: Prefix
         backend:
           service:
-            name: verify-node-app
+            name: verify-web-app
             port:
               number: 3000
 - it: accepts TLS hosts
@@ -89,7 +89,7 @@ tests:
       value:
       - hosts:
         - app.example.com
-        secretName: verify-node-tls
+        secretName: verify-web-tls
 - it: accepts TLS objects
   set:
     routing.ingress.enabled: true

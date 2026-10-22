@@ -1,3 +1,0 @@
-{{- if and .Values.app.enabled .Values.app.autoscaling.enabled }}
-{{- include "node.hpa" (dict "root" . "name" (printf "%s-app" (include "node.fullname" .)) "component" "app" "autoscaling" .Values.app.autoscaling "path" "app") }}
-{{- end }}

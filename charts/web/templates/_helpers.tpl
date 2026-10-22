@@ -2,7 +2,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "node.name" -}}
+{{- define "web.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -11,7 +11,7 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "node.fullname" -}}
+{{- define "web.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -27,16 +27,16 @@ If release name contains chart name it will be used as a full name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "node.chart" -}}
+{{- define "web.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "node.labels" -}}
-helm.sh/chart: {{ include "node.chart" . }}
-{{ include "node.selectorLabels" . }}
+{{- define "web.labels" -}}
+helm.sh/chart: {{ include "web.chart" . }}
+{{ include "web.selectorLabels" . }}
 {{- if .Values.global.image.tag }}
 app.kubernetes.io/version: {{ .Values.global.image.tag | quote }}
 {{- end }}
@@ -46,23 +46,23 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "node.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "node.name" . }}
+{{- define "web.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "web.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
 Create the name of the service account to use. Empty means the namespace default.
 */}}
-{{- define "node.serviceAccountName" -}}
+{{- define "web.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create -}}
-{{- default (include "node.fullname" .) .Values.serviceAccount.name -}}
+{{- default (include "web.fullname" .) .Values.serviceAccount.name -}}
 {{- else -}}
 {{- .Values.serviceAccount.name -}}
 {{- end -}}
 {{- end }}
 
-{{- define "node.image" -}}
+{{- define "web.image" -}}
 {{- $image := .Values.global.image -}}
 {{- $repository := required "global.image.repository is required" $image.repository -}}
 {{- if $image.digest -}}
@@ -72,21 +72,21 @@ Create the name of the service account to use. Empty means the namespace default
 {{- end -}}
 {{- end }}
 
-{{- define "node.componentName" -}}
-{{- printf "%s-%s" (include "node.fullname" .root) .name | trunc 63 | trimSuffix "-" -}}
+{{- define "web.componentName" -}}
+{{- printf "%s-%s" (include "web.fullname" .root) .name | trunc 63 | trimSuffix "-" -}}
 {{- end }}
 
-{{- define "node.componentLabels" -}}
-{{ include "node.labels" .root }}
+{{- define "web.componentLabels" -}}
+{{ include "web.labels" .root }}
 app.kubernetes.io/component: {{ .component | quote }}
 {{- end }}
 
-{{- define "node.componentSelectorLabels" -}}
-{{ include "node.selectorLabels" .root }}
+{{- define "web.componentSelectorLabels" -}}
+{{ include "web.selectorLabels" .root }}
 app.kubernetes.io/component: {{ .component | quote }}
 {{- end }}
 
-{{- define "node.validateName" -}}
+{{- define "web.validateName" -}}
 {{- if not (regexMatch "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$" (toString .name)) }}
 {{- fail (printf "%s name %q must be a DNS label" .kind (toString .name)) }}
 {{- end }}
@@ -96,7 +96,7 @@ app.kubernetes.io/component: {{ .component | quote }}
 Pod template metadata. The checksum covers env and envFrom so a change to either
 always rolls the pods.
 */}}
-{{- define "node.podMetadata" -}}
+{{- define "web.podMetadata" -}}
 {{- $root := .root -}}
 {{- $workload := .workload -}}
 {{- $annotations := mergeOverwrite (deepCopy (default (dict) $root.Values.global.podAnnotations)) (default (dict) $workload.podAnnotations) -}}
@@ -107,7 +107,7 @@ always rolls the pods.
 -}}
 {{- $_ := set $annotations "checksum/env" (toYaml $env | sha256sum) -}}
 labels:
-{{- include "node.componentSelectorLabels" (dict "root" $root "component" .component) | nindent 2 }}
+{{- include "web.componentSelectorLabels" (dict "root" $root "component" .component) | nindent 2 }}
 {{- with $labels }}
 {{- toYaml . | nindent 2 }}
 {{- end }}
@@ -119,7 +119,7 @@ annotations:
 Topology spread: a workload list (even empty) wins, then global, then, when
 .spread is set, one spreading the component's pods across nodes.
 */}}
-{{- define "node.topologySpreadConstraints" -}}
+{{- define "web.topologySpreadConstraints" -}}
 {{- $constraints := .workload.topologySpreadConstraints -}}
 {{- if kindIs "invalid" $constraints -}}
 {{- $constraints = .root.Values.global.topologySpreadConstraints -}}
@@ -129,7 +129,7 @@ Topology spread: a workload list (even empty) wins, then global, then, when
   "topologyKey" "kubernetes.io/hostname"
   "whenUnsatisfiable" "ScheduleAnyway"
   "nodeTaintsPolicy" "Honor"
-  "labelSelector" (dict "matchLabels" (include "node.componentSelectorLabels" (dict "root" .root "component" .component) | fromYaml))
+  "labelSelector" (dict "matchLabels" (include "web.componentSelectorLabels" (dict "root" .root "component" .component) | fromYaml))
 ) -}}
 {{- end -}}
 {{- end -}}
@@ -139,14 +139,14 @@ topologySpreadConstraints:
 {{- end }}
 {{- end }}
 
-{{- define "node.podSpecCommon" -}}
+{{- define "web.podSpecCommon" -}}
 {{- $root := .root -}}
 {{- $workload := .workload -}}
 {{- with $root.Values.global.imagePullSecrets }}
 imagePullSecrets:
 {{- toYaml . | nindent 2 }}
 {{- end }}
-{{- with include "node.serviceAccountName" $root }}
+{{- with include "web.serviceAccountName" $root }}
 serviceAccountName: {{ . }}
 {{- end }}
 automountServiceAccountToken: {{ $root.Values.serviceAccount.automountServiceAccountToken }}
@@ -179,12 +179,12 @@ tolerations:
 affinity:
 {{- toYaml . | nindent 2 }}
 {{- end }}
-{{- include "node.topologySpreadConstraints" . }}
+{{- include "web.topologySpreadConstraints" . }}
 {{- with $workload.initContainers }}
 initContainers:
 {{- toYaml . | nindent 2 }}
 {{- end }}
-{{- $volumes := concat (include "node.volumes" . | fromYamlArray) (default (list) $root.Values.global.extraVolumes) (default (list) $workload.extraVolumes) -}}
+{{- $volumes := concat (include "web.volumes" . | fromYamlArray) (default (list) $root.Values.global.extraVolumes) (default (list) $workload.extraVolumes) -}}
 {{- with $volumes }}
 volumes:
 {{- toYaml . | nindent 2 }}
@@ -194,10 +194,10 @@ volumes:
 {{/*
 Main container fields shared by every workload. Templates add ports, probes and lifecycle.
 */}}
-{{- define "node.containerCommon" -}}
+{{- define "web.containerCommon" -}}
 {{- $root := .root -}}
 {{- $workload := .workload -}}
-image: {{ include "node.image" $root }}
+image: {{ include "web.image" $root }}
 imagePullPolicy: {{ $root.Values.global.image.pullPolicy }}
 {{- with $root.Values.global.securityContext }}
 securityContext:
@@ -216,23 +216,23 @@ resources:
 {{- toYaml . | nindent 2 }}
 {{- end }}
 env:
-{{- include "node.env" . | nindent 2 }}
-{{- include "node.envFrom" . }}
-{{- $mounts := concat (include "node.volumeMounts" $root | fromYamlArray) (default (list) $root.Values.global.extraVolumeMounts) (default (list) $workload.extraVolumeMounts) -}}
+{{- include "web.env" . | nindent 2 }}
+{{- include "web.envFrom" . }}
+{{- $mounts := concat (include "web.volumeMounts" $root | fromYamlArray) (default (list) $root.Values.global.extraVolumeMounts) (default (list) $workload.extraVolumeMounts) -}}
 {{- with $mounts }}
 volumeMounts:
 {{- toYaml . | nindent 2 }}
 {{- end }}
 {{- end }}
 
-{{- define "node.defaultEnv" -}}
+{{- define "web.defaultEnv" -}}
 - name: APP_VERSION
   value: {{ .root.Values.global.appVersion | default .root.Values.global.image.tag | quote }}
 - name: CONTAINER_ROLE
   value: {{ .role | quote }}
 {{- end }}
 
-{{- define "node.validateEnv" -}}
+{{- define "web.validateEnv" -}}
 {{- $reserved := list "APP_VERSION" "CONTAINER_ROLE" -}}
 {{- range concat (default (list) .root.Values.global.env) (default (list) .workload.env) -}}
 {{- if has .name $reserved -}}
@@ -245,8 +245,8 @@ volumeMounts:
 Chart-owned env, then .extra and NODE_OPTIONS (each skipped when env already
 defines the name), then global env, then workload env.
 */}}
-{{- define "node.env" -}}
-{{- include "node.validateEnv" . -}}
+{{- define "web.env" -}}
+{{- include "web.validateEnv" . -}}
 {{- $userEnv := concat (default (list) .root.Values.global.env) (default (list) .workload.env) -}}
 {{- $defined := list -}}
 {{- range $userEnv }}
@@ -254,9 +254,9 @@ defines the name), then global env, then workload env.
 {{- end -}}
 {{- $extra := default (list) .extra -}}
 {{- if and (dig "node" "maxOldSpaceFromLimit" false .workload) (dig "resources" "limits" "memory" "" .workload) -}}
-{{- $extra = append $extra (dict "name" "NODE_OPTIONS" "value" (printf "--max-old-space-size=%d" (include "node.maxOldSpaceMiB" .workload.resources.limits.memory | int))) -}}
+{{- $extra = append $extra (dict "name" "NODE_OPTIONS" "value" (printf "--max-old-space-size=%d" (include "web.maxOldSpaceMiB" .workload.resources.limits.memory | int))) -}}
 {{- end -}}
-{{- include "node.defaultEnv" (dict "root" .root "role" .role) }}
+{{- include "web.defaultEnv" (dict "root" .root "role" .role) }}
 {{- range $extra }}
 {{- if not (has .name $defined) }}
 - {{ toYaml . | nindent 2 | trim }}
@@ -270,7 +270,7 @@ defines the name), then global env, then workload env.
 {{/*
 75% of a Kubernetes memory quantity, in MiB.
 */}}
-{{- define "node.maxOldSpaceMiB" -}}
+{{- define "web.maxOldSpaceMiB" -}}
 {{- $quantity := toString . -}}
 {{- if not (regexMatch "^[0-9]+(Ki|Mi|Gi|Ti|k|M|G|T)?$" $quantity) -}}
 {{- fail (printf "node.maxOldSpaceFromLimit cannot parse memory limit %q; use an integer with Ki, Mi, Gi, Ti, k, M, G or T" $quantity) -}}
@@ -281,7 +281,7 @@ defines the name), then global env, then workload env.
 {{- divf (mulf $amount (index $multipliers $unit) 0.75) 1048576 | floor | int -}}
 {{- end }}
 
-{{- define "node.envFrom" -}}
+{{- define "web.envFrom" -}}
 {{- $envFrom := concat (default (list) .root.Values.global.envFrom) (default (list) .workload.envFrom) -}}
 {{- with $envFrom }}
 envFrom:
@@ -289,15 +289,15 @@ envFrom:
 {{- end }}
 {{- end }}
 
-{{- define "node.readOnlyRootFilesystem" -}}
+{{- define "web.readOnlyRootFilesystem" -}}
 {{- if dig "readOnlyRootFilesystem" false (default (dict) .Values.global.securityContext) }}true{{ end -}}
 {{- end }}
 
-{{- define "node.writableVolumeName" -}}
+{{- define "web.writableVolumeName" -}}
 {{- printf "writable-%s" (regexReplaceAll "[^a-z0-9]+" (trimAll "/" . | lower) "-") | trunc 63 | trimSuffix "-" -}}
 {{- end }}
 
-{{- define "node.volumeMounts" -}}
+{{- define "web.volumeMounts" -}}
 {{- range .Values.global.secretVolumes }}
 {{- $volume := . -}}
 {{- range .items }}
@@ -307,15 +307,15 @@ envFrom:
   readOnly: true
 {{- end }}
 {{- end }}
-{{- if include "node.readOnlyRootFilesystem" . }}
+{{- if include "web.readOnlyRootFilesystem" . }}
 {{- range .Values.global.writablePaths }}
-- name: {{ include "node.writableVolumeName" . }}
+- name: {{ include "web.writableVolumeName" . }}
   mountPath: {{ . }}
 {{- end }}
 {{- end }}
 {{- end }}
 
-{{- define "node.volumes" -}}
+{{- define "web.volumes" -}}
 {{- range .root.Values.global.secretVolumes }}
 - name: {{ .name }}
   secret:
@@ -323,15 +323,15 @@ envFrom:
     items:
 {{- toYaml .items | nindent 6 }}
 {{- end }}
-{{- if include "node.readOnlyRootFilesystem" .root }}
+{{- if include "web.readOnlyRootFilesystem" .root }}
 {{- range .root.Values.global.writablePaths }}
-- name: {{ include "node.writableVolumeName" . }}
+- name: {{ include "web.writableVolumeName" . }}
   emptyDir: {}
 {{- end }}
 {{- end }}
 {{- end }}
 
-{{- define "node.hpa" -}}
+{{- define "web.hpa" -}}
 {{- $autoscaling := .autoscaling -}}
 {{- if not (or $autoscaling.targetCPUUtilizationPercentage $autoscaling.targetMemoryUtilizationPercentage) }}
 {{- fail (printf "%s.autoscaling needs targetCPUUtilizationPercentage or targetMemoryUtilizationPercentage" .path) }}
@@ -341,7 +341,7 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: {{ .name }}
   labels:
-    {{- include "node.componentLabels" (dict "root" .root "component" .component) | nindent 4 }}
+    {{- include "web.componentLabels" (dict "root" .root "component" .component) | nindent 4 }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -375,7 +375,7 @@ spec:
 {{/*
 PodDisruptionBudget, only when more than one pod is guaranteed.
 */}}
-{{- define "node.pdb" -}}
+{{- define "web.pdb" -}}
 {{- $autoscaling := default (dict) .workload.autoscaling -}}
 {{- $replicas := ternary (default 1 $autoscaling.minReplicas) (default 1 .workload.replicas) (and (kindIs "map" $autoscaling) (eq true $autoscaling.enabled)) -}}
 {{- if gt (int $replicas) 1 }}
@@ -384,11 +384,11 @@ kind: PodDisruptionBudget
 metadata:
   name: {{ .name }}
   labels:
-    {{- include "node.componentLabels" (dict "root" .root "component" .component) | nindent 4 }}
+    {{- include "web.componentLabels" (dict "root" .root "component" .component) | nindent 4 }}
 spec:
   minAvailable: {{ default 1 .workload.minAvailable }}
   selector:
     matchLabels:
-      {{- include "node.componentSelectorLabels" (dict "root" .root "component" .component) | nindent 6 }}
+      {{- include "web.componentSelectorLabels" (dict "root" .root "component" .component) | nindent 6 }}
 {{- end }}
 {{- end }}

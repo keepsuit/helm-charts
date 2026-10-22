@@ -21,7 +21,7 @@ tests:
         minAvailable: 1
         selector:
           matchLabels:
-            app.kubernetes.io/name: node
+            app.kubernetes.io/name: web
             app.kubernetes.io/instance: verify
             app.kubernetes.io/component: app
     template: app_pdb.yaml
@@ -44,7 +44,7 @@ tests:
         scaleTargetRef:
           apiVersion: apps/v1
           kind: Deployment
-          name: verify-node-app
+          name: verify-web-app
         minReplicas: 2
         maxReplicas: 6
         metrics:

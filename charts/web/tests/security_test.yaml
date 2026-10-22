@@ -152,7 +152,7 @@ tests:
   asserts:
   - equal:
       path: spec.template.spec.serviceAccountName
-      value: verify-node
+      value: verify-web
     template: app_deployment.yaml
   - equal:
       path: spec.template.spec.automountServiceAccountToken
@@ -160,7 +160,7 @@ tests:
     template: app_deployment.yaml
   - equal:
       path: metadata.name
-      value: verify-node
+      value: verify-web
     template: serviceaccount.yaml
   - equal:
       path: metadata.annotations
