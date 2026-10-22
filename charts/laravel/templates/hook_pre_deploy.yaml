@@ -13,6 +13,8 @@ metadata:
     {{- include "laravel.componentLabels" (dict "root" . "component" "pre-deploy") | nindent 4 }}
   annotations:
     "helm.sh/hook": "post-install,pre-upgrade"
+    {{- /* Runs before post-deploy when both fire post-install; same-weight hooks sort by name. */}}
+    "helm.sh/hook-weight": "-1"
     "helm.sh/hook-delete-policy": before-hook-creation
 spec:
   template:

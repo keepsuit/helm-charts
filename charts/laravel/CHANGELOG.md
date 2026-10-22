@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.16
+
+### Fixes
+
+- On the first install `hooks.preDeploy` now runs before `hooks.postDeploy`. Both run
+  post-install, and Helm ordered them by name, so post-deploy commands ran before the
+  pre-deploy checks.
+
 ## 0.7.15
 
 ### Fixes
