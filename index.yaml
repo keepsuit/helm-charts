@@ -143,4 +143,15 @@ entries:
     urls:
     - https://github.com/keepsuit/helm-charts/releases/download/node-0.1.0/node-0.1.0.tgz
     version: 0.1.0
-generated: "2026-10-22T12:41:40.484015102Z"
+  web:
+  - apiVersion: v2
+    created: "2026-10-22T12:50:39.364696619Z"
+    description: A Helm chart for deploying stateless HTTP apps
+    digest: 352a1fb849396b2f8e711e19fc9acd5db7a5cb035dfe37ba6cfbf3bdc99a9fb9
+    kubeVersion: '>=1.30.0-0'
+    name: web
+    type: application
+    urls:
+    - https://github.com/keepsuit/helm-charts/releases/download/web-0.1.0/web-0.1.0.tgz
+    version: 0.1.0
+generated: "2026-10-22T12:50:39.364760518Z"
