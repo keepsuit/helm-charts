@@ -31,8 +31,16 @@ jobs:
       - name: Install helm-unittest
         run: helm plugin install https://github.com/helm-unittest/helm-unittest.git --version v1.2.1 --verify=false
 
-      - name: Lint chart
+      - name: Lint laravel chart
         run: helm lint ./charts/laravel --strict --set global.image.repository=example/app --set global.image.tag=ci
 
-      - name: Test chart
+      - name: Test laravel chart
         run: helm unittest --strict ./charts/laravel
+
+      - name: Lint node chart
+        run: |
+          helm lint ./charts/node --strict -f ./charts/node/ci/ci-values.yaml
+          helm lint ./charts/node --strict -f ./examples/regrab-web-staging.yaml
+
+      - name: Test node chart
+        run: helm unittest --strict ./charts/node

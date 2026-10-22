@@ -1,0 +1,57 @@
+---
+suite: Application graceful shutdown
+templates:
+- app_deployment.yaml
+set:
+  global.image.repository: example/app
+  global.image.tag: test
+tests:
+- it: sleeps before SIGTERM within the grace period
+  asserts:
+  - equal:
+      path: spec.template.spec.terminationGracePeriodSeconds
+      value: 30
+  - equal:
+      path: spec.template.spec.containers[0].lifecycle
+      value:
+        preStop:
+          sleep:
+            seconds: 5
+- it: omits the preStop sleep when set to 0
+  set:
+    app.preStopSleepSeconds: 0
+  asserts:
+  - notExists:
+      path: spec.template.spec.containers[0].lifecycle
+- it: replaces the preStop sleep with a custom lifecycle
+  set:
+    app.lifecycle:
+      preStop:
+        exec:
+          command: [sleep, "10"]
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].lifecycle
+      value:
+        preStop:
+          exec:
+            command: [sleep, "10"]
+- it: rejects a preStop sleep not shorter than the grace period
+  set:
+    app.preStopSleepSeconds: 30
+  asserts:
+  - failedTemplate:
+      errorPattern: preStopSleepSeconds must be lower than app.terminationGracePeriodSeconds
+- it: applies rolling update and history overrides
+  set:
+    app.rollingUpdate.maxSurge: 1
+    global.revisionHistoryLimit: 10
+  asserts:
+  - equal:
+      path: spec.strategy.rollingUpdate
+      value:
+        maxUnavailable: 0
+        maxSurge: 1
+  - equal:
+      path: spec.revisionHistoryLimit
+      value: 10

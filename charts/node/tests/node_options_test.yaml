@@ -1,0 +1,77 @@
+---
+suite: NODE_OPTIONS helper
+templates:
+- app_deployment.yaml
+set:
+  global.image.repository: example/app
+  global.image.tag: test
+tests:
+- it: is off by default
+  asserts:
+  - notContains:
+      path: spec.template.spec.containers[0].env
+      content:
+        name: NODE_OPTIONS
+      any: true
+- it: uses 75% of a Gi limit
+  set:
+    app.node.maxOldSpaceFromLimit: true
+    app.resources.limits.memory: 1Gi
+  asserts:
+  - contains:
+      path: spec.template.spec.containers[0].env
+      content:
+        name: NODE_OPTIONS
+        value: --max-old-space-size=768
+- it: uses 75% of a Mi limit
+  set:
+    app.node.maxOldSpaceFromLimit: true
+    app.resources.limits.memory: 640Mi
+  asserts:
+  - contains:
+      path: spec.template.spec.containers[0].env
+      content:
+        name: NODE_OPTIONS
+        value: --max-old-space-size=480
+- it: converts decimal units to MiB
+  set:
+    app.node.maxOldSpaceFromLimit: true
+    app.resources.limits.memory: 1G
+  asserts:
+  - contains:
+      path: spec.template.spec.containers[0].env
+      content:
+        name: NODE_OPTIONS
+        value: --max-old-space-size=715
+- it: is skipped without a memory limit
+  set:
+    app.node.maxOldSpaceFromLimit: true
+    app.resources.limits: null
+  asserts:
+  - notContains:
+      path: spec.template.spec.containers[0].env
+      content:
+        name: NODE_OPTIONS
+      any: true
+- it: keeps a user-defined NODE_OPTIONS
+  set:
+    app.node.maxOldSpaceFromLimit: true
+    app.env:
+    - name: NODE_OPTIONS
+      value: --enable-source-maps
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].env[3]
+      value:
+        name: NODE_OPTIONS
+        value: --enable-source-maps
+  - lengthEqual:
+      path: spec.template.spec.containers[0].env
+      count: 4
+- it: rejects an unparsable memory limit
+  set:
+    app.node.maxOldSpaceFromLimit: true
+    app.resources.limits.memory: 1.5Gi
+  asserts:
+  - failedTemplate:
+      errorPattern: cannot parse memory limit

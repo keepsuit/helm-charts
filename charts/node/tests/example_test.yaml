@@ -1,0 +1,66 @@
+---
+suite: regrab web staging example
+templates:
+- app_deployment.yaml
+- app_service.yaml
+- app_pdb.yaml
+- ingress.yaml
+release:
+  name: regrab-web
+  namespace: regrab-staging
+values:
+- ../../../examples/regrab-web-staging.yaml
+tests:
+- it: renders the first consumer
+  asserts:
+  - equal:
+      path: spec.replicas
+      value: 2
+    template: app_deployment.yaml
+  - notExists:
+      path: spec.template.spec.containers[0].command
+    template: app_deployment.yaml
+  - notExists:
+      path: spec.template.spec.containers[0].args
+    template: app_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].ports[0].containerPort
+      value: 3000
+    template: app_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].readinessProbe.httpGet
+      value:
+        path: /up
+        port: 3000
+    template: app_deployment.yaml
+  - equal:
+      path: spec.template.spec.securityContext.runAsUser
+      value: 1000
+    template: app_deployment.yaml
+  - equal:
+      path: spec.template.spec.securityContext.runAsNonRoot
+      value: true
+    template: app_deployment.yaml
+  - hasDocuments:
+      count: 1
+    template: app_service.yaml
+  - equal:
+      path: spec.minAvailable
+      value: 1
+    template: app_pdb.yaml
+  - equal:
+      path: metadata.annotations["cert-manager.io/cluster-issuer"]
+      value: letsencrypt
+    template: ingress.yaml
+  - equal:
+      path: spec.ingressClassName
+      value: nginx
+    template: ingress.yaml
+  - equal:
+      path: spec.tls[0].secretName
+      value: regrab-web-tls
+    template: ingress.yaml
+  - equal:
+      path: spec.rules[0].http.paths[0].backend.service.name
+      value: regrab-web-app
+    template: ingress.yaml

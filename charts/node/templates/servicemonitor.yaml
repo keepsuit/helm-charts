@@ -1,0 +1,19 @@
+{{- if and .Values.app.enabled .Values.global.metrics.enabled .Values.global.metrics.serviceMonitor.enabled -}}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "node.fullname" . }}-metrics
+  labels:
+    {{- include "node.componentLabels" (dict "root" . "component" "metrics") | nindent 4 }}
+    {{- with .Values.global.metrics.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "node.componentSelectorLabels" (dict "root" . "component" "metrics") | nindent 6 }}
+  endpoints:
+    - port: metrics
+      path: {{ .Values.global.metrics.path }}
+      interval: {{ .Values.global.metrics.serviceMonitor.interval }}
+{{- end -}}

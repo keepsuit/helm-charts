@@ -1,0 +1,334 @@
+# Default values for the generic stateless HTTP app chart.
+
+global:
+  image:
+    # Image repository, e.g. ghcr.io/acme/web.
+    repository: ""
+    # Image tag. Required unless digest is set.
+    tag: ""
+    # Image digest (sha256:...). Takes precedence over tag.
+    digest: ""
+    # Image pull policy.
+    pullPolicy: IfNotPresent
+  # Value of the APP_VERSION env var. Defaults to global.image.tag.
+  appVersion: ""
+  # Pull secrets for every pod, e.g. [{name: ghcr}].
+  imagePullSecrets: []
+  # Env vars for every container. Supports value and valueFrom.
+  env: []
+  # envFrom sources (secretRef/configMapRef) for every container.
+  envFrom: []
+  # Secret keys mounted as files: [{name, mountPath, items: [{key, path}]}].
+  secretVolumes: []
+  # Annotations added to every pod.
+  podAnnotations: {}
+  # Labels added to every pod.
+  podLabels: {}
+  # Pod securityContext for every pod. Images with a non-numeric USER (e.g. "node")
+  # also need runAsUser, otherwise runAsNonRoot cannot be verified.
+  podSecurityContext:
+    # Refuse to start containers running as root.
+    runAsNonRoot: true
+    # Container runtime's default syscall filter.
+    seccompProfile:
+      type: RuntimeDefault
+  # Container securityContext for every container.
+  securityContext:
+    # Block setuid binaries from gaining privileges.
+    allowPrivilegeEscalation: false
+    # Drop every Linux capability.
+    capabilities:
+      drop:
+        - ALL
+    # When true, every path in writablePaths gets an emptyDir.
+    readOnlyRootFilesystem: false
+  # Paths mounted as emptyDir when securityContext.readOnlyRootFilesystem is true.
+  writablePaths:
+    - /tmp
+  # Volumes added to every pod.
+  extraVolumes: []
+  # Volume mounts added to every main container.
+  extraVolumeMounts: []
+  # Default nodeSelector, merged with the workload's.
+  nodeSelector: {}
+  # Default tolerations, replaced by the workload's.
+  tolerations: []
+  # Default affinity, merged with the workload's.
+  affinity: {}
+  # Default topology spread constraints, used by workloads that do not set their own.
+  topologySpreadConstraints: []
+  # Default priorityClassName, replaced by the workload's.
+  priorityClassName: ""
+  # Default pod dnsConfig, replaced by the workload's.
+  dnsConfig: {}
+  # Revisions kept by every Deployment for rollback.
+  revisionHistoryLimit: 3
+  # Metrics endpoint served by the app pods.
+  metrics:
+    # Adds the container port and a <release>-metrics Service.
+    enabled: false
+    # Container and Service port.
+    port: 9090
+    # HTTP path scraped by the ServiceMonitor.
+    path: /metrics
+    # Prometheus Operator scraping.
+    serviceMonitor:
+      # Renders a Prometheus Operator ServiceMonitor. Requires its CRDs.
+      enabled: false
+      # Scrape interval.
+      interval: 30s
+      # Extra ServiceMonitor labels, e.g. the Prometheus release selector.
+      labels: {}
+
+serviceAccount:
+  # Create a ServiceAccount for the release. When false, pods use serviceAccount.name or "default".
+  create: false
+  # ServiceAccount name. Defaults to the release fullname when create is true.
+  name: ""
+  # Annotations for the created ServiceAccount (e.g. workload identity).
+  annotations: {}
+  # Mount the API token in every pod.
+  automountServiceAccountToken: false
+
+app:
+  # Render the HTTP Deployment and its Service.
+  enabled: true
+  # Replicas when autoscaling is disabled. A PodDisruptionBudget is rendered above 1.
+  replicas: 1
+  # PodDisruptionBudget minAvailable.
+  minAvailable: 1
+  # Container port. Also sets the PORT env var unless env already defines PORT.
+  port: 3000
+  # When set, sets the HOST env var (e.g. 0.0.0.0) unless env already defines HOST.
+  host: ""
+  # Container command. Empty uses the image ENTRYPOINT.
+  command: []
+  # Container args. Empty uses the image CMD.
+  args: []
+  # Env vars appended after global.env.
+  env: []
+  # envFrom sources appended after global.envFrom.
+  envFrom: []
+  # Pod annotations merged over global.podAnnotations.
+  podAnnotations: {}
+  # Pod labels merged over global.podLabels.
+  podLabels: {}
+  # nodeSelector merged over global.nodeSelector.
+  nodeSelector: {}
+  # Tolerations. Empty uses global.tolerations.
+  tolerations: []
+  # Affinity merged over global.affinity.
+  affinity: {}
+  # null spreads pods across nodes (ScheduleAnyway); [] disables; a list replaces it.
+  topologySpreadConstraints:
+  # Pod priorityClassName. Empty uses global.priorityClassName.
+  priorityClassName: ""
+  # Pod dnsConfig. Empty uses global.dnsConfig.
+  dnsConfig: {}
+  # Extra pod volumes, appended to global.extraVolumes.
+  extraVolumes: []
+  # Extra main container volume mounts, appended to global.extraVolumeMounts.
+  extraVolumeMounts: []
+  # Init containers.
+  initContainers: []
+  # Sidecar containers.
+  extraContainers: []
+  service:
+    # Render the ClusterIP Service.
+    enabled: true
+    # Service type.
+    type: ClusterIP
+    # Service port. Defaults to app.port.
+    port:
+  healthCheck:
+    # Render startup, readiness and liveness probes.
+    enabled: true
+    # http (GET healthCheck.path) or tcp (TCP connect).
+    type: http
+    # Path of the HTTP health endpoint.
+    path: /
+    # Probe port. Defaults to app.port.
+    port:
+    # Liveness initial delay.
+    initialDelaySeconds: 30
+    # Liveness period.
+    periodSeconds: 30
+    # Readiness and liveness timeout.
+    timeoutSeconds: 5
+    # Readiness and liveness failure threshold.
+    failureThreshold: 3
+  # null uses the generated probe; false disables it; an object overrides it.
+  # Timing-only overrides keep the generated check. A handler replaces that check.
+  # All probes are omitted when healthCheck.enabled is false.
+  startupProbe: null
+  readinessProbe: null
+  livenessProbe: null
+  # Omit to use Kubernetes' default progress deadline (600 seconds).
+  progressDeadlineSeconds: null
+  # Deployment RollingUpdate settings.
+  rollingUpdate:
+    # Never drop below the desired replicas during a rollout.
+    maxUnavailable: 0
+    # Extra pods created during a rollout.
+    maxSurge: 25%
+  # Seconds between SIGTERM and SIGKILL. Must exceed preStopSleepSeconds.
+  terminationGracePeriodSeconds: 30
+  # preStop sleep that lets the ingress stop routing before SIGTERM. 0 disables it.
+  preStopSleepSeconds: 5
+  # Container lifecycle. When set, replaces the generated preStop sleep.
+  lifecycle: {}
+  # Container requests and limits. The memory limit also drives node.maxOldSpaceFromLimit.
+  resources:
+    requests:
+      cpu: "10m"
+      memory: "128Mi"
+    limits:
+      cpu: "1000m"
+      memory: "512Mi"
+  autoscaling:
+    # Render a HorizontalPodAutoscaler. app.replicas is then ignored.
+    enabled: false
+    # HPA minReplicas. A PodDisruptionBudget is rendered above 1.
+    minReplicas: 1
+    # HPA maxReplicas.
+    maxReplicas: 10
+    # Average CPU utilization target. At least one target is required.
+    targetCPUUtilizationPercentage: 60
+    # Average memory utilization target.
+    targetMemoryUtilizationPercentage:
+    # HPA spec.behavior passthrough.
+    behavior: {}
+  # Node.js-only helpers.
+  node:
+    # Sets NODE_OPTIONS=--max-old-space-size to 75% of the memory limit (MiB),
+    # unless env already defines NODE_OPTIONS.
+    maxOldSpaceFromLimit: false
+
+# Extra Deployments from the same image, e.g. queue consumers.
+workers: []
+# - name: jobs                 # DNS label, Deployment <fullname>-worker-<name>
+#   enabled: true
+#   command: [node, worker.mjs]
+#   args: []
+#   replicas: 1
+#   minAvailable: 1            # PodDisruptionBudget, rendered when replicas or HPA min > 1
+#   resources: {}
+#   env: []
+#   envFrom: []
+#   startupProbe:              # no probes by default; any probe object (exec, tcpSocket, ...)
+#   readinessProbe:
+#   livenessProbe:
+#   terminationGracePeriodSeconds: 30
+#   lifecycle: {}
+#   node:
+#     maxOldSpaceFromLimit: false
+#   autoscaling:
+#     enabled: false
+#     minReplicas: 1
+#     maxReplicas: 5
+#     targetCPUUtilizationPercentage: 80
+#     targetMemoryUtilizationPercentage:
+#     behavior: {}
+#   podAnnotations: {}
+#   podLabels: {}
+#   nodeSelector: {}
+#   tolerations: []
+#   affinity: {}
+#   topologySpreadConstraints:  # null spreads across nodes; [] disables
+#   priorityClassName: ""
+#   dnsConfig: {}
+#   extraVolumes: []
+#   extraVolumeMounts: []
+#   initContainers: []
+#   extraContainers: []
+
+# CronJobs from the same image.
+cronJobs: []
+# - name: cleanup              # DNS label, CronJob <fullname>-cron-<name>
+#   enabled: true
+#   schedule: "0 3 * * *"
+#   timeZone: Europe/Rome
+#   command: [node, scripts/cleanup.mjs]
+#   args: []
+#   concurrencyPolicy: Forbid
+#   successfulJobsHistoryLimit: 3
+#   failedJobsHistoryLimit: 1
+#   backoffLimit: 0
+#   activeDeadlineSeconds: 600
+#   resources: {}
+#   env: []
+#   envFrom: []
+#   node:
+#     maxOldSpaceFromLimit: false
+#   podAnnotations: {}
+#   podLabels: {}
+#   nodeSelector: {}
+#   tolerations: []
+#   affinity: {}
+#   priorityClassName: ""
+#   dnsConfig: {}
+#   extraVolumes: []
+#   extraVolumeMounts: []
+#   initContainers: []
+#   extraContainers: []
+
+routing:
+  ingress:
+    # Render the Ingress.
+    enabled: false
+    # ingressClassName, e.g. nginx.
+    className: ""
+    # Ingress annotations, e.g. cert-manager.io/cluster-issuer.
+    annotations: {}
+    # Host rules. service must be app.
+    routes: []
+    # - service: app
+    #   host: example.com
+    #   paths:
+    #     - path: /
+    #       pathType: Prefix
+    # Hostnames sharing the <fullname>-tls secret, or full Kubernetes Ingress TLS objects.
+    tls: []
+    # - example.com
+    # - www.example.com
+    # Or pass full Kubernetes Ingress TLS objects:
+    # - hosts:
+    #     - example.com
+    #   secretName: custom-tls
+
+# Jobs run through `sh -c`, so the image needs a shell.
+hooks:
+  preDeploy:
+    # Job run pre-upgrade (post-install on the first install). A failure fails the Helm operation.
+    enabled: false
+    # Commands run in order, stopping at the first failure.
+    commands: []
+    # Env vars appended after global.env.
+    env: []
+    # envFrom sources appended after global.envFrom.
+    envFrom: []
+    # Container resources.
+    resources: {}
+    # Job backoffLimit. Omit for the Kubernetes default (6).
+    backoffLimit:
+    # Job activeDeadlineSeconds.
+    activeDeadlineSeconds:
+    # Job ttlSecondsAfterFinished.
+    ttlSecondsAfterFinished:
+  postDeploy:
+    # Job run post-install and post-upgrade.
+    enabled: false
+    # Commands run in order, stopping at the first failure.
+    commands: []
+    # Env vars appended after global.env.
+    env: []
+    # envFrom sources appended after global.envFrom.
+    envFrom: []
+    # Container resources.
+    resources: {}
+    # Job backoffLimit. Omit for the Kubernetes default (6).
+    backoffLimit:
+    # Job activeDeadlineSeconds.
+    activeDeadlineSeconds:
+    # Job ttlSecondsAfterFinished.
+    ttlSecondsAfterFinished:

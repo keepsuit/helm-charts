@@ -1,0 +1,65 @@
+{{- if .Values.app.enabled -}}
+{{- $app := .Values.app -}}
+{{- if and $app.preStopSleepSeconds (not $app.lifecycle) (ge (int $app.preStopSleepSeconds) (int $app.terminationGracePeriodSeconds)) }}
+{{- fail "app.preStopSleepSeconds must be lower than app.terminationGracePeriodSeconds" }}
+{{- end }}
+{{- $extraEnv := list (dict "name" "PORT" "value" (toString $app.port)) -}}
+{{- with $app.host }}
+{{- $extraEnv = append $extraEnv (dict "name" "HOST" "value" .) -}}
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "node.fullname" . }}-app
+  labels:
+    {{- include "node.componentLabels" (dict "root" . "component" "app") | nindent 4 }}
+spec:
+  {{- if not $app.autoscaling.enabled }}
+  replicas: {{ $app.replicas }}
+  {{- end }}
+  {{- with $app.progressDeadlineSeconds }}
+  progressDeadlineSeconds: {{ . }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "node.componentSelectorLabels" (dict "root" . "component" "app") | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      {{- with $app.rollingUpdate }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+  revisionHistoryLimit: {{ .Values.global.revisionHistoryLimit }}
+  template:
+    metadata:
+      {{- include "node.podMetadata" (dict "root" . "workload" $app "component" "app") | trim | nindent 6 }}
+    spec:
+      {{- include "node.podSpecCommon" (dict "root" . "workload" $app "component" "app" "spread" true) | trim | nindent 6 }}
+      containers:
+        - name: app
+          {{- include "node.containerCommon" (dict "root" . "workload" $app "role" "app" "extra" $extraEnv) | trim | nindent 10 }}
+          ports:
+            - name: http
+              containerPort: {{ int $app.port }}
+              protocol: TCP
+            {{- if .Values.global.metrics.enabled }}
+            - name: metrics
+              containerPort: {{ int .Values.global.metrics.port }}
+              protocol: TCP
+            {{- end }}
+          {{- if $app.healthCheck.enabled }}
+          {{- include "node.appProbes" . | trim | nindent 10 }}
+          {{- end }}
+          {{- if $app.lifecycle }}
+          lifecycle:
+            {{- toYaml $app.lifecycle | nindent 12 }}
+          {{- else if $app.preStopSleepSeconds }}
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: {{ int $app.preStopSleepSeconds }}
+          {{- end }}
+        {{- with $app.extraContainers }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+{{- end -}}

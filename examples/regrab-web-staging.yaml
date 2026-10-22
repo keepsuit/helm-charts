@@ -1,0 +1,45 @@
+# regrab web (TanStack Start) on staging, deployed with charts/node.
+#   helm upgrade --install regrab-web ./charts/node -n regrab-staging -f examples/regrab-web-staging.yaml
+# Values marked [da confermare] are placeholders: replace them before deploying.
+
+fullnameOverride: regrab-web
+
+global:
+  image:
+    repository: ghcr.io/keepsuit/regrab-web  # [da confermare]
+    tag: staging  # [da confermare]
+  imagePullSecrets:
+    - name: ghcr  # [da confermare]
+  # The image runs as USER node, a name: runAsNonRoot needs its numeric UID (1000 in node images).
+  podSecurityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+  env:
+    - name: APP_URL
+      value: https://staging.regrab.example  # [da confermare]
+    - name: API_BASE_URL
+      value: https://api.staging.regrab.example/internal  # [da confermare]
+  envFrom:
+    - secretRef:
+        name: regrab-web  # [da confermare]
+        optional: true
+
+app:
+  replicas: 2
+  healthCheck:
+    path: /up
+
+routing:
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt
+    routes:
+      - service: app
+        host: staging.regrab.example  # [da confermare]
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - staging.regrab.example  # [da confermare]

@@ -32,6 +32,10 @@ tests:
       value: before-hook-creation
     template: hook_pre_deploy.yaml
   - equal:
+      path: metadata.annotations["helm.sh/hook-weight"]
+      value: "-1"
+    template: hook_pre_deploy.yaml
+  - equal:
       path: spec.template.spec.containers[0].args
       value:
       - sh

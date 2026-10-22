@@ -1,0 +1,4 @@
+{{- if .Values.hooks.preDeploy.enabled -}}
+{{- /* The release ServiceAccount does not exist yet before the first install; the weight runs it before post-deploy there. */ -}}
+{{- include "node.hookJob" (dict "root" . "key" "preDeploy" "component" "pre-deploy" "phases" "post-install,pre-upgrade" "weight" "-1") }}
+{{- end }}

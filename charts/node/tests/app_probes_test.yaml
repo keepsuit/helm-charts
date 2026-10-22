@@ -1,0 +1,136 @@
+---
+suite: Application probes
+templates:
+- app_deployment.yaml
+set:
+  global.image.repository: example/app
+  global.image.tag: test
+tests:
+- it: generates HTTP probes on the health check path
+  set:
+    app.healthCheck.path: /up
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].startupProbe
+      value:
+        periodSeconds: 2
+        timeoutSeconds: 5
+        failureThreshold: 60
+        httpGet: &1
+          path: /up
+          port: 3000
+  - equal:
+      path: spec.template.spec.containers[0].readinessProbe
+      value:
+        initialDelaySeconds: 0
+        periodSeconds: 5
+        timeoutSeconds: 5
+        failureThreshold: 3
+        httpGet: *1
+  - equal:
+      path: spec.template.spec.containers[0].livenessProbe
+      value:
+        initialDelaySeconds: 30
+        periodSeconds: 30
+        timeoutSeconds: 5
+        failureThreshold: 3
+        httpGet: *1
+  - notExists:
+      path: spec.progressDeadlineSeconds
+- it: switches every probe to TCP with healthCheck.type
+  set:
+    app.healthCheck.type: tcp
+    app.healthCheck.port: 9000
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].readinessProbe.tcpSocket
+      value:
+        port: 9000
+  - notExists:
+      path: spec.template.spec.containers[0].readinessProbe.httpGet
+  - equal:
+      path: spec.template.spec.containers[0].livenessProbe.tcpSocket
+      value:
+        port: 9000
+- it: keeps the generated handler when overriding timings
+  set:
+    app.startupProbe:
+      periodSeconds: 5
+      failureThreshold: 120
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].startupProbe
+      value:
+        periodSeconds: 5
+        timeoutSeconds: 5
+        failureThreshold: 120
+        httpGet:
+          path: /
+          port: 3000
+- it: replaces the handler per probe
+  set:
+    app.livenessProbe:
+      exec:
+        command: [node, healthcheck.mjs]
+    app.readinessProbe:
+      tcpSocket:
+        port: http
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].livenessProbe
+      value:
+        initialDelaySeconds: 30
+        periodSeconds: 30
+        timeoutSeconds: 5
+        failureThreshold: 3
+        exec:
+          command: [node, healthcheck.mjs]
+  - equal:
+      path: spec.template.spec.containers[0].readinessProbe.tcpSocket
+      value:
+        port: http
+  - notExists:
+      path: spec.template.spec.containers[0].readinessProbe.httpGet
+  - exists:
+      path: spec.template.spec.containers[0].startupProbe.httpGet
+- it: disables a single probe with false
+  set:
+    app.livenessProbe: false
+  asserts:
+  - notExists:
+      path: spec.template.spec.containers[0].livenessProbe
+  - exists:
+      path: spec.template.spec.containers[0].readinessProbe
+- it: disables every probe with healthCheck.enabled false
+  set:
+    app.healthCheck.enabled: false
+  asserts:
+  - notExists:
+      path: spec.template.spec.containers[0].startupProbe
+  - notExists:
+      path: spec.template.spec.containers[0].readinessProbe
+  - notExists:
+      path: spec.template.spec.containers[0].livenessProbe
+- it: sets the progress deadline
+  set:
+    app.progressDeadlineSeconds: 900
+  asserts:
+  - equal:
+      path: spec.progressDeadlineSeconds
+      value: 900
+- it: rejects multiple probe handlers
+  set:
+    app.startupProbe:
+      httpGet:
+        port: http
+      exec:
+        command: [true]
+  asserts:
+  - failedTemplate:
+      errorPattern: values don.t meet the specifications of the schema
+- it: rejects true as a probe override
+  set:
+    app.startupProbe: true
+  asserts:
+  - failedTemplate:
+      errorPattern: values don.t meet the specifications of the schema

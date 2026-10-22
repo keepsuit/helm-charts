@@ -1,0 +1,175 @@
+---
+suite: Default rendering
+templates:
+- app_deployment.yaml
+- app_service.yaml
+- app_hpa.yaml
+- app_pdb.yaml
+- worker_deployment.yaml
+- worker_hpa.yaml
+- worker_pdb.yaml
+- cronjob.yaml
+- hook_pre_deploy.yaml
+- hook_post_deploy.yaml
+- ingress.yaml
+- metrics_service.yaml
+- servicemonitor.yaml
+- serviceaccount.yaml
+release:
+  name: verify
+  namespace: test
+set:
+  global.image.repository: example/app
+  global.image.tag: test
+tests:
+- it: renders only the app Deployment and Service
+  asserts:
+  - hasDocuments:
+      count: 1
+    template: app_deployment.yaml
+  - hasDocuments:
+      count: 1
+    template: app_service.yaml
+  - hasDocuments:
+      count: 0
+    template: app_hpa.yaml
+  - hasDocuments:
+      count: 0
+    template: app_pdb.yaml
+  - hasDocuments:
+      count: 0
+    template: worker_deployment.yaml
+  - hasDocuments:
+      count: 0
+    template: worker_hpa.yaml
+  - hasDocuments:
+      count: 0
+    template: worker_pdb.yaml
+  - hasDocuments:
+      count: 0
+    template: cronjob.yaml
+  - hasDocuments:
+      count: 0
+    template: hook_pre_deploy.yaml
+  - hasDocuments:
+      count: 0
+    template: hook_post_deploy.yaml
+  - hasDocuments:
+      count: 0
+    template: ingress.yaml
+  - hasDocuments:
+      count: 0
+    template: metrics_service.yaml
+  - hasDocuments:
+      count: 0
+    template: servicemonitor.yaml
+  - hasDocuments:
+      count: 0
+    template: serviceaccount.yaml
+- it: uses the image CMD with one replica
+  template: app_deployment.yaml
+  asserts:
+  - equal:
+      path: spec.replicas
+      value: 1
+  - equal:
+      path: spec.template.spec.containers[0].image
+      value: example/app:test
+  - notExists:
+      path: spec.template.spec.containers[0].command
+  - notExists:
+      path: spec.template.spec.containers[0].args
+  - notExists:
+      path: spec.template.spec.serviceAccountName
+  - equal:
+      path: spec.template.spec.automountServiceAccountToken
+      value: false
+  - equal:
+      path: spec.strategy
+      value:
+        type: RollingUpdate
+        rollingUpdate:
+          maxUnavailable: 0
+          maxSurge: 25%
+  - equal:
+      path: spec.revisionHistoryLimit
+      value: 3
+  - equal:
+      path: spec.selector.matchLabels
+      value:
+        app.kubernetes.io/name: node
+        app.kubernetes.io/instance: verify
+        app.kubernetes.io/component: app
+  - equal:
+      path: spec.template.spec.topologySpreadConstraints
+      value:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: ScheduleAnyway
+        nodeTaintsPolicy: Honor
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: node
+            app.kubernetes.io/instance: verify
+            app.kubernetes.io/component: app
+- it: routes the Service to the http port
+  template: app_service.yaml
+  asserts:
+  - equal:
+      path: spec.ports
+      value:
+      - name: http
+        port: 3000
+        targetPort: http
+        protocol: TCP
+  - equal:
+      path: spec.selector
+      value:
+        app.kubernetes.io/name: node
+        app.kubernetes.io/instance: verify
+        app.kubernetes.io/component: app
+- it: prefers the image digest over the tag
+  template: app_deployment.yaml
+  set:
+    global.image.digest: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].image
+      value: example/app@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+- it: requires a tag or digest
+  template: app_deployment.yaml
+  set:
+    global.image.tag: ""
+  asserts:
+  - failedTemplate:
+      errorPattern: global.image.tag or global.image.digest is required
+- it: sets command and args when configured
+  template: app_deployment.yaml
+  set:
+    app.command: [node]
+    app.args: [server.mjs]
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].command
+      value: [node]
+  - equal:
+      path: spec.template.spec.containers[0].args
+      value: [server.mjs]
+- it: disables the default topology spread with an empty list
+  template: app_deployment.yaml
+  set:
+    app.topologySpreadConstraints: []
+  asserts:
+  - notExists:
+      path: spec.template.spec.topologySpreadConstraints
+- it: uses global topology spread when the app sets none
+  template: app_deployment.yaml
+  set:
+    global.topologySpreadConstraints:
+    - maxSkew: 2
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: DoNotSchedule
+  asserts:
+  - equal:
+      path: spec.template.spec.topologySpreadConstraints[0].maxSkew
+      value: 2

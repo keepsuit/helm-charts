@@ -1,0 +1,180 @@
+---
+suite: Security contexts and service account
+templates:
+- app_deployment.yaml
+- worker_deployment.yaml
+- cronjob.yaml
+- hook_post_deploy.yaml
+- serviceaccount.yaml
+set:
+  global.image.repository: example/app
+  global.image.tag: test
+release:
+  name: verify
+  namespace: test
+tests:
+- it: secures pods and containers by default
+  template: app_deployment.yaml
+  asserts:
+  - equal:
+      path: spec.template.spec.securityContext
+      value:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+  - equal:
+      path: spec.template.spec.containers[0].securityContext
+      value:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: [ALL]
+        readOnlyRootFilesystem: false
+  - notExists:
+      path: spec.template.spec.volumes
+  - notExists:
+      path: spec.template.spec.containers[0].volumeMounts
+- it: merges a numeric user into the defaults
+  template: app_deployment.yaml
+  set:
+    global.podSecurityContext.runAsUser: 1000
+  asserts:
+  - equal:
+      path: spec.template.spec.securityContext
+      value:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+- it: mounts writable emptyDirs on every workload with a read-only root filesystem
+  set:
+    global.securityContext.readOnlyRootFilesystem: true
+    global.writablePaths: [/tmp, /app/.cache]
+    workers:
+    - name: jobs
+    cronJobs:
+    - name: nightly
+      schedule: "0 0 * * *"
+    hooks.postDeploy.enabled: true
+    hooks.postDeploy.commands: [node migrate.mjs]
+  asserts:
+  - equal:
+      path: spec.template.spec.volumes
+      value:
+      - name: writable-tmp
+        emptyDir: {}
+      - name: writable-app-cache
+        emptyDir: {}
+    template: app_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].volumeMounts
+      value:
+      - name: writable-tmp
+        mountPath: /tmp
+      - name: writable-app-cache
+        mountPath: /app/.cache
+    template: app_deployment.yaml
+  - equal:
+      path: spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem
+      value: true
+    template: app_deployment.yaml
+  - contains:
+      path: spec.template.spec.containers[0].volumeMounts
+      content:
+        name: writable-tmp
+        mountPath: /tmp
+    template: worker_deployment.yaml
+  - contains:
+      path: spec.jobTemplate.spec.template.spec.containers[0].volumeMounts
+      content:
+        name: writable-tmp
+        mountPath: /tmp
+    template: cronjob.yaml
+  - contains:
+      path: spec.template.spec.containers[0].volumeMounts
+      content:
+        name: writable-tmp
+        mountPath: /tmp
+    template: hook_post_deploy.yaml
+- it: appends extra and secret volumes
+  template: app_deployment.yaml
+  set:
+    global.secretVolumes:
+    - name: creds
+      mountPath: /etc/creds
+      items:
+      - key: key.json
+        path: key.json
+    global.extraVolumes:
+    - name: shared
+      configMap:
+        name: shared
+    global.extraVolumeMounts:
+    - name: shared
+      mountPath: /etc/shared
+    app.extraVolumes:
+    - name: cache
+      emptyDir: {}
+    app.extraVolumeMounts:
+    - name: cache
+      mountPath: /cache
+  asserts:
+  - equal:
+      path: spec.template.spec.volumes
+      value:
+      - name: creds
+        secret:
+          secretName: creds
+          items:
+          - key: key.json
+            path: key.json
+      - name: shared
+        configMap:
+          name: shared
+      - name: cache
+        emptyDir: {}
+  - equal:
+      path: spec.template.spec.containers[0].volumeMounts
+      value:
+      - name: creds
+        mountPath: /etc/creds/key.json
+        subPath: key.json
+        readOnly: true
+      - name: shared
+        mountPath: /etc/shared
+      - name: cache
+        mountPath: /cache
+- it: creates and uses a service account when enabled
+  set:
+    serviceAccount.create: true
+    serviceAccount.annotations:
+      iam.example.com/role: web
+    serviceAccount.automountServiceAccountToken: true
+  asserts:
+  - equal:
+      path: spec.template.spec.serviceAccountName
+      value: verify-node
+    template: app_deployment.yaml
+  - equal:
+      path: spec.template.spec.automountServiceAccountToken
+      value: true
+    template: app_deployment.yaml
+  - equal:
+      path: metadata.name
+      value: verify-node
+    template: serviceaccount.yaml
+  - equal:
+      path: metadata.annotations
+      value:
+        iam.example.com/role: web
+    template: serviceaccount.yaml
+- it: uses an existing service account by name
+  set:
+    serviceAccount.name: existing
+  asserts:
+  - equal:
+      path: spec.template.spec.serviceAccountName
+      value: existing
+    template: app_deployment.yaml
+  - hasDocuments:
+      count: 0
+    template: serviceaccount.yaml
