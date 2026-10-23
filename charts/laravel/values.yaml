@@ -18,6 +18,7 @@ global:
   securityContext: {}
   nodeSelector: {}
   tolerations: []
+  hostAliases: []
   affinity: {}
   topologySpreadConstraints: []
   workerCommand:
@@ -37,6 +38,7 @@ app:
   podLabels: {}
   nodeSelector: {}
   tolerations: []
+  hostAliases: []
   affinity: {}
   topologySpreadConstraints:
     - maxSkew: 1
@@ -146,6 +148,7 @@ workers: []
 #   podLabels: {}
 #   nodeSelector: {}
 #   tolerations: []
+#   hostAliases: []
 #   affinity: {}
 #   topologySpreadConstraints: []
 #   resources: {}  # omit to inherit workerResources[type]
@@ -183,6 +186,7 @@ reverb:
   podLabels: {}
   nodeSelector: {}
   tolerations: []
+  hostAliases: []
   affinity: {}
   topologySpreadConstraints: []
   service:

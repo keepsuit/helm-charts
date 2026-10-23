@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.17
+
+### Features
+
+- Added `hostAliases` on `global` and on every workload (app, reverb, workers, hooks),
+  replaced by the workload's like `tolerations`.
+
 ## 0.7.16
 
 ### Fixes
