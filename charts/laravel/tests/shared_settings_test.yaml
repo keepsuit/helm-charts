@@ -597,6 +597,14 @@ tests:
     global.tolerations:
     - key: workload
       operator: Exists
+    global.hostAliases:
+    - ip: 10.0.0.1
+      hostnames:
+      - api.example.com
+    reverb.hostAliases:
+    - ip: 10.0.0.2
+      hostnames:
+      - ws.example.com
     global.affinity: &3
       nodeAffinity:
         preferredDuringSchedulingIgnoredDuringExecution:
@@ -625,6 +633,13 @@ tests:
         operator: Exists
     template: app_deployment.yaml
   - equal:
+      path: spec.template.spec.hostAliases
+      value:
+      - ip: 10.0.0.1
+        hostnames:
+        - api.example.com
+    template: app_deployment.yaml
+  - equal:
       path: spec.template.spec.affinity
       value: *3
     template: app_deployment.yaml
@@ -639,6 +654,13 @@ tests:
       value:
       - key: workload
         operator: Exists
+    template: reverb_deployment.yaml
+  - equal:
+      path: spec.template.spec.hostAliases
+      value:
+      - ip: 10.0.0.2
+        hostnames:
+        - ws.example.com
     template: reverb_deployment.yaml
   - equal:
       path: spec.template.spec.affinity
@@ -657,6 +679,13 @@ tests:
         operator: Exists
     template: worker_deployment.yaml
   - equal:
+      path: spec.template.spec.hostAliases
+      value:
+      - ip: 10.0.0.1
+        hostnames:
+        - api.example.com
+    template: worker_deployment.yaml
+  - equal:
       path: spec.template.spec.affinity
       value: *3
     template: worker_deployment.yaml
@@ -673,6 +702,13 @@ tests:
         operator: Exists
     template: hook_pre_deploy.yaml
   - equal:
+      path: spec.template.spec.hostAliases
+      value:
+      - ip: 10.0.0.1
+        hostnames:
+        - api.example.com
+    template: hook_pre_deploy.yaml
+  - equal:
       path: spec.template.spec.affinity
       value: *3
     template: hook_pre_deploy.yaml
@@ -687,6 +723,13 @@ tests:
       value:
       - key: workload
         operator: Exists
+    template: hook_post_deploy.yaml
+  - equal:
+      path: spec.template.spec.hostAliases
+      value:
+      - ip: 10.0.0.1
+        hostnames:
+        - api.example.com
     template: hook_post_deploy.yaml
   - equal:
       path: spec.template.spec.affinity

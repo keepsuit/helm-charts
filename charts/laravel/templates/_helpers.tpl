@@ -140,6 +140,10 @@ nodeSelector:
 tolerations:
 {{- toYaml . | nindent 2 }}
 {{- end }}
+{{- with default $root.Values.global.hostAliases $workload.hostAliases }}
+hostAliases:
+{{- toYaml . | nindent 2 }}
+{{- end }}
 {{- $affinity := mergeOverwrite (deepCopy (default (dict) $root.Values.global.affinity)) (default (dict) $workload.affinity) -}}
 {{- with $affinity }}
 affinity:

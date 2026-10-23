@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1
+
+### Features
+
+- Added `hostAliases` on `global` and on every workload (app, workers, CronJobs, hooks),
+  replaced by the workload's like `dnsConfig`.
+
 ## 0.1.0
 
 ### Features

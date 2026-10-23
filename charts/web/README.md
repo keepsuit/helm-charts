@@ -318,7 +318,7 @@ also renders a Prometheus Operator ServiceMonitor scraping `global.metrics.path`
 
 `extraVolumes`, `extraVolumeMounts` (global and per workload, concatenated),
 `initContainers`, `extraContainers`, `podAnnotations`, `podLabels`, `priorityClassName`,
-`dnsConfig` and the scheduling keys are available on `app`, every worker and every CronJob.
+`dnsConfig`, `hostAliases` and the scheduling keys are available on `app`, every worker and every CronJob.
 
 ## Values
 
@@ -346,6 +346,7 @@ also renders a Prometheus Operator ServiceMonitor scraping `global.metrics.path`
 | `global.topologySpreadConstraints` | `[]` | Used when the workload sets none. |
 | `global.priorityClassName` | `""` | Used when the workload sets none. |
 | `global.dnsConfig` | `{}` | Used when the workload sets none. |
+| `global.hostAliases` | `[]` | `/etc/hosts` entries; used when the workload sets none. |
 | `global.revisionHistoryLimit` | `3` | Revisions kept by every Deployment. |
 | `global.metrics.enabled` | `false` | Metrics port and Service. |
 | `global.metrics.port` | `9090` | Metrics port. |
@@ -367,7 +368,7 @@ also renders a Prometheus Operator ServiceMonitor scraping `global.metrics.path`
 | `app.podAnnotations` / `app.podLabels` | `{}` | Merged over the global ones. |
 | `app.nodeSelector` / `app.tolerations` / `app.affinity` | | Scheduling overrides. |
 | `app.topologySpreadConstraints` | `null` | `null` spreads across nodes; `[]` disables. |
-| `app.priorityClassName` / `app.dnsConfig` | | Pod overrides. |
+| `app.priorityClassName` / `app.dnsConfig` / `app.hostAliases` | | Pod overrides. |
 | `app.extraVolumes` / `app.extraVolumeMounts` | `[]` | Appended after the global ones. |
 | `app.initContainers` / `app.extraContainers` | `[]` | Init and sidecar containers. |
 | `app.service.enabled` | `true` | Render the Service. |

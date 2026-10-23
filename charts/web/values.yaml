@@ -61,6 +61,8 @@ global:
   priorityClassName: ""
   # Default pod dnsConfig, replaced by the workload's.
   dnsConfig: {}
+  # Default pod hostAliases (/etc/hosts entries), replaced by the workload's.
+  hostAliases: []
   # Revisions kept by every Deployment for rollback.
   revisionHistoryLimit: 3
   # Metrics endpoint served by the app pods.
@@ -125,6 +127,8 @@ app:
   priorityClassName: ""
   # Pod dnsConfig. Empty uses global.dnsConfig.
   dnsConfig: {}
+  # Pod hostAliases. Empty uses global.hostAliases.
+  hostAliases: []
   # Extra pod volumes, appended to global.extraVolumes.
   extraVolumes: []
   # Extra main container volume mounts, appended to global.extraVolumeMounts.
@@ -237,6 +241,7 @@ workers: []
 #   topologySpreadConstraints:  # null spreads across nodes; [] disables
 #   priorityClassName: ""
 #   dnsConfig: {}
+#   hostAliases: []
 #   extraVolumes: []
 #   extraVolumeMounts: []
 #   initContainers: []
@@ -267,6 +272,7 @@ cronJobs: []
 #   affinity: {}
 #   priorityClassName: ""
 #   dnsConfig: {}
+#   hostAliases: []
 #   extraVolumes: []
 #   extraVolumeMounts: []
 #   initContainers: []

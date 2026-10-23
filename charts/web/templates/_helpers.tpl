@@ -164,6 +164,10 @@ priorityClassName: {{ . | quote }}
 dnsConfig:
 {{- toYaml . | nindent 2 }}
 {{- end }}
+{{- with default $root.Values.global.hostAliases $workload.hostAliases }}
+hostAliases:
+{{- toYaml . | nindent 2 }}
+{{- end }}
 {{- $nodeSelector := mergeOverwrite (deepCopy (default (dict) $root.Values.global.nodeSelector)) (default (dict) $workload.nodeSelector) -}}
 {{- with $nodeSelector }}
 nodeSelector:

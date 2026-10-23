@@ -136,6 +136,12 @@
         "dnsConfig": {
           "type": "object"
         },
+        "hostAliases": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
         "revisionHistoryLimit": {
           "type": "integer",
           "minimum": 0
@@ -243,6 +249,12 @@
         },
         "dnsConfig": {
           "type": "object"
+        },
+        "hostAliases": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
         },
         "extraVolumes": {
           "type": "array",
@@ -458,6 +470,12 @@
           "dnsConfig": {
             "type": "object"
           },
+          "hostAliases": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
           "extraVolumes": {
             "type": "array",
             "items": {
@@ -625,6 +643,12 @@
           },
           "dnsConfig": {
             "type": "object"
+          },
+          "hostAliases": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
           },
           "extraVolumes": {
             "type": "array",

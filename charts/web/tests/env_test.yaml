@@ -105,6 +105,14 @@ tests:
       options:
       - name: ndots
         value: "2"
+    global.hostAliases:
+    - ip: 10.0.0.1
+      hostnames:
+      - global.example.com
+    app.hostAliases:
+    - ip: 10.0.0.2
+      hostnames:
+      - api.example.com
     global.nodeSelector:
       kubernetes.io/arch: arm64
     app.tolerations:
@@ -133,6 +141,12 @@ tests:
   - equal:
       path: spec.template.spec.dnsConfig.options[0].name
       value: ndots
+  - equal:
+      path: spec.template.spec.hostAliases
+      value:
+      - ip: 10.0.0.2
+        hostnames:
+        - api.example.com
   - equal:
       path: spec.template.spec.nodeSelector
       value:
