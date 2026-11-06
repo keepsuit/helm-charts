@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.18
+
+### Features
+
+- Queue and combined workers get `terminationGracePeriodSeconds` set to their effective
+  `--timeout` (Laravel default 60) plus 30 seconds, so a worker stopped by a deploy or an
+  eviction finishes its current job instead of being killed after the Kubernetes default 30.
+  Set `terminationGracePeriodSeconds` on a worker to override it, on any worker type.
+- KEDA workers that scale to zero get the `cluster-autoscaler.kubernetes.io/safe-to-evict: "false"`
+  pod annotation: they only run while there is work, so the cluster autoscaler no longer evicts
+  them mid-job to scale a node down. A worker's `podAnnotations` can override it.
+
 ## 0.7.17
 
 ### Features

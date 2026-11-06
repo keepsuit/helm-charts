@@ -2,6 +2,12 @@
 {{- range .Values.workers }}
 {{- $worker := . -}}
 {{- $autoscaling := default (dict) $worker.autoscaling -}}
+{{- $workload := $worker -}}
+{{- /* A scale-to-zero worker only exists while there is work: keep the cluster autoscaler from evicting it mid-job. */ -}}
+{{- if and $autoscaling.enabled (eq (default "hpa" $autoscaling.mode) "keda") (eq (int (default 0 $autoscaling.minReplicas)) 0) }}
+{{- $annotations := mergeOverwrite (dict "cluster-autoscaler.kubernetes.io/safe-to-evict" "false") (deepCopy (default (dict) $worker.podAnnotations)) -}}
+{{- $workload = merge (dict "podAnnotations" $annotations) $worker -}}
+{{- end }}
 {{- if dig "enabled" true $worker }}
 {{- if not (regexMatch "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$" $worker.name) }}
 {{- fail (printf "worker name %q must be a DNS label" $worker.name) }}
@@ -30,9 +36,12 @@ spec:
   revisionHistoryLimit: 3
   template:
     metadata:
-      {{- include "laravel.podMetadata" (dict "root" $root "workload" $worker "component" (printf "worker-%s" $worker.name)) | nindent 6 }}
+      {{- include "laravel.podMetadata" (dict "root" $root "workload" $workload "component" (printf "worker-%s" $worker.name)) | nindent 6 }}
     spec:
       {{- include "laravel.podSpecCommon" (dict "root" $root "workload" $worker) | nindent 6 }}
+      {{- with include "laravel.workerTerminationGracePeriod" (dict "root" $root "worker" $worker) }}
+      terminationGracePeriodSeconds: {{ . }}
+      {{- end }}
       containers:
         - name: worker
           {{- with $root.Values.global.securityContext }}
