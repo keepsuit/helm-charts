@@ -142,9 +142,10 @@ workers: []
 #     maxTime:
 #     memory:
 #     backoff:
+#   terminationGracePeriodSeconds:  # queue/combined default: effective timeout + 30
 #   env: []
 #   envFrom: []
-#   podAnnotations: {}
+#   podAnnotations: {}  # KEDA scale-to-zero workers default to cluster-autoscaler safe-to-evict "false"
 #   podLabels: {}
 #   nodeSelector: {}
 #   tolerations: []

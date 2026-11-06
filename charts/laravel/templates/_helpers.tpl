@@ -240,6 +240,34 @@ even when a default exists.
 {{- end }}
 {{- end }}
 
+{{- /*
+Seconds a worker pod gets to finish its current job after SIGTERM: the explicit value, or for
+queue and combined workers the effective --timeout (Laravel default 60) plus 30. Empty for an
+unlimited timeout and for the other types, which keep the Kubernetes default.
+*/ -}}
+{{- define "laravel.workerTerminationGracePeriod" -}}
+{{- $worker := .worker -}}
+{{- $explicit := dig "terminationGracePeriodSeconds" nil $worker -}}
+{{- if not (kindIs "invalid" $explicit) -}}
+{{- int $explicit -}}
+{{- else if has $worker.type (list "queue" "combined") -}}
+{{- $queueOptions := default (dict) $worker.queueOptions -}}
+{{- $defaults := default (dict) .root.Values.queueOptions -}}
+{{- $timeout := 60 -}}
+{{- if hasKey $queueOptions "timeout" -}}
+{{- $timeout = get $queueOptions "timeout" -}}
+{{- else if hasKey $defaults "timeout" -}}
+{{- $timeout = get $defaults "timeout" -}}
+{{- end -}}
+{{- if kindIs "invalid" $timeout -}}
+{{- $timeout = 60 -}}
+{{- end -}}
+{{- if gt (int $timeout) 0 -}}
+{{- add (int $timeout) 30 -}}
+{{- end -}}
+{{- end -}}
+{{- end }}
+
 {{- define "laravel.workerCommand" -}}
 {{- $root := .root -}}
 {{- $worker := .worker -}}

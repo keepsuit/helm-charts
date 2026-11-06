@@ -196,6 +196,14 @@ workers:
 
 The combined type requires global.workerCommand.useWrapper: true. Commands are passed as arguments to the image entrypoint.
 
+On SIGTERM `queue:work` finishes the current job and exits. Queue and combined workers get
+`terminationGracePeriodSeconds` set to their effective `--timeout` plus 30 seconds (Laravel's
+default timeout is 60), so a deploy or an eviction does not kill a job mid-run. Raise it on the
+worker for jobs that set a longer `$timeout` than the worker's. Horizon, scheduler and workers with
+`timeout: 0` keep the Kubernetes default of 30 seconds unless the worker sets
+`terminationGracePeriodSeconds`. When it drains a node, the cluster autoscaler waits at most its
+`--max-graceful-termination-sec` (600 by default).
+
 ### Queue autoscaling with KEDA
 
 Workers of type queue and horizon can scale on queue depth instead of CPU, down to zero
@@ -234,6 +242,11 @@ Constraints, all enforced at render time:
   app pods, so a release without a web tier has nothing to poll.
 - Only queue and horizon workers. Scheduler and combined workers cannot autoscale at all.
 - mode: keda replaces the HorizontalPodAutoscaler, it is never rendered alongside one.
+
+Workers in keda mode that scale to zero (minReplicas: 0) carry the
+`cluster-autoscaler.kubernetes.io/safe-to-evict: "false"` pod annotation: they only run while the
+queue has work, so the cluster autoscaler does not evict them mid-job to remove a node. Set the
+annotation in the worker's podAnnotations to override it. It does not stop spot interruptions.
 
 If the metrics endpoint fails, the ScaledObject falls back to 1 replica after 3 consecutive
 failures, so a broken metric leaves a worker running rather than a queue unattended.

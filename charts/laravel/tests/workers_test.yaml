@@ -256,3 +256,55 @@ tests:
   asserts:
   - failedTemplate:
       errorPattern: schema
+- it: gives queue workers their timeout plus 30 seconds to finish the current job
+  set:
+    workers:
+    - name: default-timeout
+      type: queue
+    - name: own-timeout
+      type: queue
+      queueOptions:
+        timeout: 120
+  asserts:
+  - equal:
+      path: spec.template.spec.terminationGracePeriodSeconds
+      value: 90
+    documentIndex: 0
+  - equal:
+      path: spec.template.spec.terminationGracePeriodSeconds
+      value: 150
+    documentIndex: 1
+- it: inherits the timeout from the shared queue options
+  set:
+    queueOptions.timeout: 300
+    workers:
+    - name: jobs
+      type: combined
+  asserts:
+  - equal:
+      path: spec.template.spec.terminationGracePeriodSeconds
+      value: 330
+- it: honors an explicit termination grace period on any worker type
+  set:
+    workers:
+    - name: jobs
+      type: horizon
+      terminationGracePeriodSeconds: 3700
+  asserts:
+  - equal:
+      path: spec.template.spec.terminationGracePeriodSeconds
+      value: 3700
+- it: keeps the Kubernetes default for unlimited timeouts, horizon and scheduler
+  set:
+    workers:
+    - name: unlimited
+      type: queue
+      queueOptions:
+        timeout: 0
+    - name: horizon
+      type: horizon
+    - name: scheduler
+      type: scheduler
+  asserts:
+  - notExists:
+      path: spec.template.spec.terminationGracePeriodSeconds

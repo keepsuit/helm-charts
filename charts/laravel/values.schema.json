@@ -90,6 +90,7 @@
               "backoff": { "type": ["integer", "null"], "minimum": 0 }
             }
           },
+          "terminationGracePeriodSeconds": { "type": ["integer", "null"], "minimum": 0 },
           "autoscaling": { "$ref": "#/definitions/workerAutoscaling" }
         }
       }

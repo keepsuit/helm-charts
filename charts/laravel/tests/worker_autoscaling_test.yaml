@@ -284,3 +284,56 @@ tests:
       path: spec.triggers[0].metadata.targetValue
       value: '10'
     template: worker_scaledobject.yaml
+- it: protects scale-to-zero KEDA workers from cluster autoscaler eviction
+  set:
+    global.metrics.enabled: true
+    workers:
+    - name: jobs
+      type: queue
+      autoscaling:
+        enabled: true
+        mode: keda
+  asserts:
+  - equal:
+      path: spec.template.metadata.annotations["cluster-autoscaler.kubernetes.io/safe-to-evict"]
+      value: "false"
+    template: worker_deployment.yaml
+- it: leaves always-on workers evictable
+  set:
+    global.metrics.enabled: true
+    workers:
+    - name: keda-min-one
+      type: queue
+      autoscaling:
+        enabled: true
+        mode: keda
+        minReplicas: 1
+    - name: hpa
+      type: queue
+      autoscaling:
+        enabled: true
+    - name: fixed
+      type: queue
+  asserts:
+  - notExists:
+      path: spec.template.metadata.annotations
+    template: worker_deployment.yaml
+- it: lets the worker override the eviction annotation
+  set:
+    global.metrics.enabled: true
+    workers:
+    - name: jobs
+      type: queue
+      podAnnotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+        team: jobs
+      autoscaling:
+        enabled: true
+        mode: keda
+  asserts:
+  - equal:
+      path: spec.template.metadata.annotations
+      value:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+        team: jobs
+    template: worker_deployment.yaml
