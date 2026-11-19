@@ -35,12 +35,12 @@ spec:
           args:
             - "php"
             - "artisan"
+            - "reverb:start"
             {{- if (default false .Values.reverb.debug) }}
             - "--debug"
             {{- end }}
             - "--host=0.0.0.0"
             - "--port={{ required "reverb.port is required" .Values.reverb.port }}"
-            - "reverb:start"
           ports:
             - name: reverb
               containerPort: {{ int (required "reverb.port is required" .Values.reverb.port) }}

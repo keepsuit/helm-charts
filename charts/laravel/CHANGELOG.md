@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.19
+
+### Changes
+
+- The Reverb container now passes `reverb:start` before its options, like the other artisan
+  commands. The command it runs is unchanged.
+
 ## 0.7.18
 
 ### Features

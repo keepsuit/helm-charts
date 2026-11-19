@@ -24,9 +24,9 @@ tests:
       value:
       - php
       - artisan
+      - reverb:start
       - "--host=0.0.0.0"
       - "--port=9000"
-      - reverb:start
   - equal:
       path: spec.template.spec.containers[0].ports[0].containerPort
       value: 9000
@@ -51,7 +51,7 @@ tests:
       path: spec.replicas
       value: 2
   - equal:
-      path: spec.template.spec.containers[0].args[2]
+      path: spec.template.spec.containers[0].args[3]
       value: "--debug"
   - equal:
       path: spec.template.spec.containers[0].env[2].value
